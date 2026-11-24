@@ -1,0 +1,15 @@
+# Local configuration and secrets
+.env
+
+# Runtime state (sessions, login throttling, logs, caches)
+/storage/sessions/*
+/storage/throttle/*
+/storage/cache/*
+/storage/logs/*
+!/storage/**/.gitkeep
+
+# Tooling
+vendor/
+.idea/
+.vscode/
+*.log

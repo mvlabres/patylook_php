@@ -1,0 +1,29 @@
+{
+    "name": "patylook/patylook-php",
+    "description": "Patylook: gestão de pedidos (PHP 8.2, MVC com Front Controller)",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.2",
+        "ext-pdo_mysql": "*",
+        "ext-mbstring": "*",
+        "ext-gd": "*",
+        "ext-ctype": "*",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Patylook\\": "app/"
+        },
+        "files": [
+            "app/Support/helpers.php"
+        ]
+    },
+    "scripts": {
+        "test": "php tests/run.php",
+        "serve": "php bin/patylook serve"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

@@ -1,0 +1,101 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Command line tools:
+ *
+ *   php bin/patylook hash-password   prints a bcrypt hash for user.password (never touches the database)
+ *   php bin/patylook verify-schema   read-only check of the existing database
+ *   php bin/patylook serve [addr]    local development server (default localhost:8080)
+ */
+
+use Patylook\Core\Config;
+use Patylook\Exceptions\ValidationException;
+use Patylook\Infrastructure\BcryptHasher;
+use Patylook\Infrastructure\Database\SchemaVerifier;
+use Patylook\Infrastructure\StartupTasks;
+use Patylook\Models\User;
+
+if (PHP_SAPI !== 'cli') {
+    exit('Execute pela linha de comando.');
+}
+
+$container = require dirname(__DIR__) . '/bootstrap.php';
+$command = $argv[1] ?? '';
+
+switch ($command) {
+    case 'hash-password':
+        $password = readPassword();
+        try {
+            User::validatePassword('password', $password);
+        } catch (ValidationException $e) {
+            fwrite(STDERR, 'erro: ' . $e->getMessage() . PHP_EOL);
+            exit(1);
+        }
+        echo (new BcryptHasher())->hash($password), PHP_EOL;
+        break;
+
+    case 'verify-schema':
+        try {
+            $container->get(SchemaVerifier::class)->verify();
+            echo 'Banco de dados OK.', PHP_EOL;
+        } catch (Throwable $e) {
+            fwrite(STDERR, 'erro: ' . $e->getMessage() . PHP_EOL);
+            exit(1);
+        }
+        break;
+
+    case 'bootstrap':
+        try {
+            $container->get(StartupTasks::class)->run();
+            echo 'Verificação concluída (administrador inicial criado se a tabela user estava vazia).', PHP_EOL;
+        } catch (Throwable $e) {
+            fwrite(STDERR, 'erro: ' . $e->getMessage() . PHP_EOL);
+            exit(1);
+        }
+        break;
+
+    case 'serve':
+        $address = $argv[2] ?? 'localhost:8080';
+        $root = dirname(__DIR__) . '/public';
+        echo "Servidor em http://{$address} (Ctrl+C para parar)", PHP_EOL;
+        passthru(escapeshellarg(PHP_BINARY) . ' -S ' . escapeshellarg($address) . ' -t ' . escapeshellarg($root) . ' ' . escapeshellarg($root . '/router.php'));
+        break;
+
+    default:
+        fwrite(STDERR, "Uso: php bin/patylook <hash-password|verify-schema|bootstrap|serve>\n");
+        exit($command === '' ? 0 : 1);
+}
+
+/** Reads the password twice from the terminal (no echo when possible), or one line from a pipe. */
+function readPassword(): string
+{
+    $interactive = function_exists('stream_isatty') && stream_isatty(STDIN);
+    if (!$interactive) {
+        return rtrim((string) fgets(STDIN), "\r\n");
+    }
+    $first = promptHidden('Senha: ');
+    $again = promptHidden('Confirme a senha: ');
+    if ($first !== $again) {
+        fwrite(STDERR, 'erro: as senhas não conferem' . PHP_EOL);
+        exit(1);
+    }
+    return $first;
+}
+
+function promptHidden(string $label): string
+{
+    fwrite(STDERR, $label);
+    $hide = PHP_OS_FAMILY !== 'Windows' && is_string(shell_exec('command -v stty 2>/dev/null'));
+    if ($hide) {
+        shell_exec('stty -echo');
+    }
+    $value = rtrim((string) fgets(STDIN), "\r\n");
+    if ($hide) {
+        shell_exec('stty echo');
+    }
+    fwrite(STDERR, PHP_EOL);
+    return $value;
+}

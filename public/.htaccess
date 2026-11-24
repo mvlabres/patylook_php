@@ -1,0 +1,36 @@
+# Front Controller with URL rewriting: anything that is not an existing file goes to index.php,
+# where the router decides what to do. Requires mod_rewrite (enabled by default on shared hosts).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Hand the Authorization header (if any) to PHP running as CGI/FastCGI.
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Real files (CSS, JS) are served directly; everything else is routed by PHP.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# No directory listings, no index files other than the front controller.
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+
+# Upload limits: the main image plus up to 8 carousel images of 6 MB each. (With PHP running as
+# CGI/FastCGI these php_value lines are ignored; .user.ini carries the same values.)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 8M
+    php_value post_max_size 64M
+    php_value max_file_uploads 20
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js)$">
+        Header set Cache-Control "public, max-age=3600"
+    </FilesMatch>
+</IfModule>
+
+# Never serve dotfiles or backups.
+<FilesMatch "^\.|~$|\.(bak|sql|log)$">
+    Require all denied
+</FilesMatch>

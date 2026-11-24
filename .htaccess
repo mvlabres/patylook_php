@@ -1,0 +1,16 @@
+# Use this file only when the hosting account cannot point the domain's document root to the
+# "public" folder (for example public_html on shared hosting). It sends every request to public/,
+# and nothing outside public/ (app, config, storage, .env, images...) can be reached from the web.
+# When the document root IS public/, this file is not used.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^$ public/ [L]
+    RewriteRule ^((?!public/).*)$ public/$1 [L]
+</IfModule>
+
+Options -Indexes
+
+# Second line of defense should the rewrite rules ever be skipped: never serve these directly.
+<FilesMatch "^\.|\.(sql|md|json|log|ini|env)$|^bootstrap\.php$">
+    Require all denied
+</FilesMatch>
