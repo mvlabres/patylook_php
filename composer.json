@@ -1,6 +1,6 @@
 {
     "name": "patylook/patylook-php",
-    "description": "Patylook: gestão de pedidos (PHP 8.2, MVC com Front Controller)",
+    "description": "VL Store: gestão de pedidos (PHP 8.2, MVC com Front Controller)",
     "type": "project",
     "license": "proprietary",
     "require": {

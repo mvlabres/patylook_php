@@ -25,6 +25,9 @@ interface ProductImageRepositoryInterface
     /** @throws \Patylook\Exceptions\NotFoundException */
     public function findById(int $id): ProductImage;
 
+    /** @throws \Patylook\Exceptions\NotFoundException */
+    public function findByPath(string $path): ProductImage;
+
     /** @throws \Patylook\Exceptions\ConflictException */
     public function create(ProductImage $image): void;
 

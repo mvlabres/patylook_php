@@ -28,6 +28,8 @@ final class Application
         private readonly array $globalMiddleware = [],
         private readonly array $responseFilters = [],
         private readonly array $terminables = [],
+        /** @var list<class-string<MiddlewareInterface>> run for paths no route answers, before the 404 */
+        private readonly array $unmatchedMiddleware = [],
     ) {
     }
 
@@ -67,6 +69,8 @@ final class Application
 
         $middleware = $this->globalMiddleware;
         if ($match === null) {
+            // A visitor without a session is sent to the login instead of learning which paths exist.
+            $middleware = [...$middleware, ...$this->unmatchedMiddleware];
             $core = static fn (Request $r): Response => throw new HttpException(404, 'Página não encontrada', 'O endereço acessado não existe.');
         } else {
             [$route, $params] = $match;

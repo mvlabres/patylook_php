@@ -11,6 +11,7 @@ use Patylook\Exceptions\NotFoundException;
 use Patylook\Exceptions\ValidationException;
 use Patylook\Infrastructure\GdImageProcessor;
 use Patylook\Models\Brand;
+use Patylook\Models\Gender;
 use Patylook\Models\Money;
 use Patylook\Models\Pricebook;
 use Patylook\Models\Product;
@@ -72,7 +73,7 @@ final class CatalogServiceTest extends TestCase
 
     private function newProduct(string $name = 'Perfume', int $brand = 1): Product
     {
-        return new Product(name: $name, categoryId: 1, brandId: $brand, stock: 3, sku: 'IGNORED');
+        return new Product(name: $name, categoryId: 1, brandId: $brand, gender: Gender::Unisex, stock: 3, sku: 'IGNORED');
     }
 
     public function testCreateProductStoresImagesAndGeneratesSku(): void
@@ -187,16 +188,20 @@ final class CatalogServiceTest extends TestCase
         $this->service->create($this->actor, $p, new ProductImages($this->upload()));
         $sku = $p->sku;
 
-        $edit = new Product(id: $p->id, name: 'Novo nome', sku: 'HACK-1', categoryId: 1, brandId: 1, stock: 9);
+        $edit = new Product(id: $p->id, name: 'Novo nome', sku: 'HACK-1', categoryId: 1, brandId: 1, gender: Gender::Female, stock: 9);
         $this->service->update($edit);
         $this->assertSame($sku, $this->products->items[$p->id]->sku);
         $this->assertSame('Novo nome', $this->products->items[$p->id]->name);
+        $this->assertSame(Gender::Female, $this->products->items[$p->id]->gender, 'o gênero é editável');
 
-        $e = $this->assertThrows(ValidationException::class, fn () => $this->service->update(new Product(id: $p->id, name: 'X', categoryId: 1, brandId: 2)));
+        $e = $this->assertThrows(ValidationException::class, fn () => $this->service->update(new Product(id: $p->id, name: 'X', categoryId: 1, brandId: 1)));
+        $this->assertTrue($e->has('gender'), 'gênero é obrigatório');
+
+        $e = $this->assertThrows(ValidationException::class, fn () => $this->service->update(new Product(id: $p->id, name: 'X', categoryId: 1, brandId: 2, gender: Gender::Male)));
         $this->assertTrue($e->has('brand_id'));
         // Keeping the current (even if later deactivated) brand is fine.
         $this->brands->items[1]->isActive = false;
-        $this->service->update(new Product(id: $p->id, name: 'Y', categoryId: 1, brandId: 1));
+        $this->service->update(new Product(id: $p->id, name: 'Y', categoryId: 1, brandId: 1, gender: Gender::Male));
         $this->assertSame('Y', $this->products->items[$p->id]->name);
     }
 

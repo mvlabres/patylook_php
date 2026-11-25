@@ -25,9 +25,17 @@ final class ProductImage
         return $this->fileName === ImagePaths::MAIN_NAME;
     }
 
-    /** The address the application serves the image from. */
+    /** The address the application serves the image from (signed-in area). */
     public function url(): string
     {
         return '/' . $this->path;
+    }
+
+    /** The address the public showcase serves the image from: only active products' images answer there. */
+    public function publicUrl(): string
+    {
+        $prefix = ImagePaths::BASE . '/';
+        $rest = str_starts_with($this->path, $prefix) ? substr($this->path, strlen($prefix)) : $this->path;
+        return '/mostruario/imagens/' . $rest;
     }
 }

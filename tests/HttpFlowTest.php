@@ -157,8 +157,13 @@ final class HttpFlowTest extends TestCase
         $this->assertSame(200, $this->get('/login')->status());
         $r = $this->get('/');
         $this->assertSame([303, '/login'], [$r->status(), $this->location($r)]);
-        $this->assertSame(404, $this->get('/nao-existe')->status());
-        $this->assertSame(404, $this->post('/healthz', [])->status());
+        // Unknown paths and methods never reveal anything to a visitor without a session: login.
+        foreach (['/nao-existe', '/login/x', '/static/nada.css'] as $path) {
+            $r = $this->get($path);
+            $this->assertSame([303, '/login'], [$r->status(), $this->location($r)], $path);
+        }
+        $r = $this->post('/healthz', []);
+        $this->assertSame([303, '/login'], [$r->status(), $this->location($r)]);
 
         $this->assertSame(401, $this->login('admin', 'errada')->status());
         $ok = $this->login();
@@ -171,6 +176,81 @@ final class HttpFlowTest extends TestCase
         $this->assertContains('<h1>Painel</h1>', $dash->body());
         $this->assertContains('Content-Security-Policy', implode(',', array_keys($dash->headers())));
         $this->assertSame('/', $this->location($this->get('/login')), 'logado volta ao painel');
+        $this->assertSame(404, $this->get('/nao-existe')->status(), 'logado vê o 404');
+    }
+
+    public function testPublicShowcaseNeedsNoLoginAndExposesNothingElse(): void
+    {
+        $this->login();
+        $this->submit('/categories/new', '/categories', ['name' => 'Perfumaria']);
+        $this->submit('/brands/new', '/brands', ['name' => 'Ferrari']);
+        $db = $this->database;
+        $this->pdo?->exec("INSERT INTO `$db`.product (name, sku, product_category_id, brand_id, stock, is_active, created_by) VALUES
+            ('Perfume Ativo', 'PER-ATIVO', 1, 1, 10, 1, 1), ('Perfume Inativo', 'PER-INATIVO', 1, 1, 10, 0, 1)");
+        $this->pdo?->exec("INSERT INTO `$db`.product_images (product_id, file_name, path, sort_order, created_by) VALUES
+            (1, 'principal.jpg', 'images/products/PER-ATIVO/principal.jpg', 0, 1), (2, 'principal.jpg', 'images/products/PER-INATIVO/principal.jpg', 0, 1)");
+        foreach (['PER-ATIVO', 'PER-INATIVO'] as $folder) {
+            mkdir($this->tmp . '/images/' . $folder, 0o777, true);
+            file_put_contents($this->tmp . '/images/' . $folder . '/principal.jpg', 'jpg');
+        }
+        $this->post('/logout', ['csrf_token' => $this->csrf('/')]);
+        $this->assertSame('/login', $this->location($this->get('/')), 'deslogado');
+
+        // The page: title and search only, no menu or management actions, active products only.
+        $page = $this->get('/mostruario');
+        $this->assertSame(200, $page->status());
+        $body = $page->body();
+        $this->assertContains('<h1>Mostruário</h1>', $body);
+        $this->assertContains('Buscar por nome ou SKU', $body);
+        $this->assertContains('Perfume Ativo', $body);
+        $this->assertFalse(str_contains($body, 'Perfume Inativo'), 'produto inativo fica de fora');
+        foreach (['class="nav"', 'Gerenciar produtos', 'href="/orders"', 'href="/products"', '/logout', 'csrf_token'] as $hidden) {
+            $this->assertFalse(str_contains($body, $hidden), "não deve aparecer: $hidden");
+        }
+        $this->assertContains('/mostruario/imagens/PER-ATIVO/principal.jpg', $body);
+        $this->assertFalse(str_contains($body, 'wa.me'), 'sem vendedor cadastrado não há link de WhatsApp');
+
+        // With a seller registered, each product links to a pre-filled WhatsApp chat (area code + number gets 55).
+        $this->pdo?->exec("INSERT INTO `$db`.main_seller (name, whatsapp) VALUES ('Patricia', '(45) 92002-0405')");
+        $text = rawurlencode('Olá. Gostaria de saber mais detalhes do produto Perfume Ativo - PER-ATIVO.');
+        $this->assertContains('https://wa.me/5545920020405?text=' . $text, $this->get('/mostruario')->body());
+        $this->assertContains('Perfume Ativo', $this->get('/mostruario', ['q' => 'ATIVO'])->body());
+
+        // Gender filter: "Todos" by default, one gender when chosen, unknown values mean "Todos".
+        $this->pdo?->exec("UPDATE `$db`.product SET gender = 'male' WHERE id = 1");
+        $this->pdo?->exec("INSERT INTO `$db`.product (name, sku, product_category_id, brand_id, gender, stock, is_active, created_by) VALUES ('Perfume Feminino', 'PER-FEM', 1, 1, 'female', 5, 1, 1)");
+        $all = $this->get('/mostruario')->body();
+        $this->assertContains('Perfume Ativo', $all);
+        $this->assertContains('Perfume Feminino', $all);
+        $this->assertContains('<option value="">Todos</option>', $all);
+        foreach (['Masculino', 'Feminino', 'Unissex'] as $label) {
+            $this->assertContains('>' . $label . '</option>', $all);
+        }
+        $this->assertFalse(str_contains($all, 'selected'), 'Todos é o padrão: nenhuma outra opção marcada');
+        $male = $this->get('/mostruario', ['gender' => 'male'])->body();
+        $this->assertContains('Perfume Ativo', $male);
+        $this->assertFalse(str_contains($male, 'Perfume Feminino'));
+        $this->assertContains('value="male" selected', $male, 'o filtro aplicado fica marcado');
+        $female = $this->get('/mostruario', ['gender' => 'female', 'q' => 'Perfume'])->body();
+        $this->assertContains('Perfume Feminino', $female);
+        $this->assertFalse(str_contains($female, 'Perfume Ativo'));
+        $this->assertContains('Nenhum produto ativo para exibir.', $this->get('/mostruario', ['gender' => 'unisex'])->body());
+        $this->assertContains('Perfume Feminino', $this->get('/mostruario', ['gender' => 'robo'])->body(), 'valor desconhecido = Todos');
+
+        // Images: only through the public route, and only for active products.
+        $this->assertSame(200, $this->get('/mostruario/imagens/PER-ATIVO/principal.jpg')->status());
+        $this->assertSame(404, $this->get('/mostruario/imagens/PER-INATIVO/principal.jpg')->status());
+        $this->assertSame(404, $this->get('/mostruario/imagens/PER-ATIVO/outra.jpg')->status());
+        $this->assertSame(404, $this->get('/mostruario/imagens/%2E%2E/principal.jpg')->status());
+
+        // Every other address, existing or not, sends the visitor to the login.
+        foreach (['/images/products/PER-ATIVO/principal.jpg', '/showcase', '/products', '/orders', '/users', '/profile',
+                  '/mostruario/', '/mostruario/x', '/mostruario/imagens', '/mostruario/imagens/PER-ATIVO', '/mostruario/imagens/PER-ATIVO/principal.jpg/x', '/Mostruario', '/nao-existe'] as $path) {
+            $r = $this->get($path);
+            $this->assertSame([303, '/login'], [$r->status(), $this->location($r)], $path);
+        }
+        $r = $this->post('/mostruario', []);
+        $this->assertSame([303, '/login'], [$r->status(), $this->location($r)], 'POST /mostruario');
     }
 
     public function testCsrfAndCrossOriginAreRejected(): void
@@ -205,6 +285,17 @@ final class HttpFlowTest extends TestCase
         $db = $this->database;
         $this->pdo?->exec("INSERT INTO `$db`.product (name, sku, product_category_id, brand_id, stock, is_active, created_by) VALUES ('Perfume', 'PER-FER-2411261602', 1, 1, 10, 1, 1)");
 
+        // Gender: new products come from the form (see the model tests); here the edit form keeps it valid.
+        $this->assertContains('Unissex', $this->get('/products/new')->body(), 'campo de gênero no cadastro');
+        $form = ['name' => 'Perfume', 'product_category_id' => '1', 'brand_id' => '1', 'stock' => '10'];
+        $r = $this->submit('/products/1/edit', '/products/1', $form);
+        $this->assertSame(422, $r->status());
+        $this->assertContains('Gênero é obrigatório', $r->body());
+        $this->assertSame(422, $this->submit('/products/1/edit', '/products/1', $form + ['gender' => 'robo'])->status(), 'valor desconhecido é recusado');
+        $r = $this->submit('/products/1/edit', '/products/1', $form + ['gender' => 'female']);
+        $this->assertSame('/products', $this->location($r));
+        $this->assertSame('female', $this->scalar("SELECT gender FROM `$db`.product WHERE id = 1"));
+
         // Prices: below cost is refused, a valid one derives the markup.
         $r = $this->submit('/products/1/prices', '/products/1/prices', ['product_cost' => '50,00', 'packaging_cost' => '10', 'final_price' => '59,99', 'valid_from' => '2026-01-01']);
         $this->assertSame(422, $r->status());
@@ -213,6 +304,11 @@ final class HttpFlowTest extends TestCase
         $this->assertSame('/products/1/prices', $this->location($r));
         $this->assertSame('50.00', $this->scalar("SELECT markup_percent FROM `$db`.pricebook"));
         $this->assertContains('Preço cadastrado.', $this->get('/products/1/prices')->body(), 'mensagem flash exibida uma vez');
+        $list = $this->get('/products')->body();
+        $this->assertContains('R$ 60,00', $list, 'custos somados na lista');
+        $this->assertContains('50,00%', $list, 'markup na lista');
+        $this->assertContains('R$ 30,00', $list, 'ganho real = preço - custos');
+        $this->assertContains('<tfoot>', $list, 'linha de totais');
         $this->assertFalse(str_contains($this->get('/products/1/prices')->body(), 'Preço cadastrado.'), 'flash consumida');
 
         // Order: totals, snapshots and stock.
@@ -247,6 +343,8 @@ final class HttpFlowTest extends TestCase
         $this->assertContains('o registro está sendo usado por outros dados', $this->get('/categories')->body());
         $this->assertContains('Perfume', $this->get('/showcase')->body());
         $this->assertContains('Sem imagem', $this->get('/showcase')->body());
+        $this->assertContains('Perfume', $this->get('/showcase', ['gender' => 'female'])->body(), 'filtro de gênero no showcase interno');
+        $this->assertContains('Nenhum produto ativo para exibir.', $this->get('/showcase', ['gender' => 'male'])->body());
         $this->assertSame(404, $this->get('/images/products/PER-FER-2411261602/principal.jpg')->status());
     }
 

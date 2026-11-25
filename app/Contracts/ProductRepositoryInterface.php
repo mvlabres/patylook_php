@@ -7,6 +7,7 @@ namespace Patylook\Contracts;
 use DateTimeImmutable;
 use Patylook\Dto\ListParams;
 use Patylook\Dto\ListResult;
+use Patylook\Dto\ProductTotals;
 use Patylook\Models\Product;
 
 interface ProductRepositoryInterface
@@ -20,6 +21,9 @@ interface ProductRepositoryInterface
      * @return ListResult<Product>
      */
     public function list(ListParams $params, DateTimeImmutable $on): ListResult;
+
+    /** Price, cost and gain summed over every product matching the search (not just one page). */
+    public function totals(ListParams $params, DateTimeImmutable $on): ProductTotals;
 
     /**
      * Active products with stock and a valid price, used by the order form.

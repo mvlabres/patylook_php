@@ -13,6 +13,7 @@ use Patylook\Http\Form;
 use Patylook\Http\Pager;
 use Patylook\Http\Responder;
 use Patylook\Http\UploadReader;
+use Patylook\Models\Gender;
 use Patylook\Models\Product;
 use Throwable;
 
@@ -33,6 +34,7 @@ final class ProductController extends Controller
         $result = $this->products->list($this->pageNumber($request), $q);
         $page = $this->responder->newPage($request, 'Produtos', 'products');
         $page->data['products'] = $result->items;
+        $page->data['totals'] = $this->products->totals($q);
         $page->data['query'] = $q;
         $page->data['pager'] = Pager::for($request, $result);
         return $this->responder->view('product_list', $page);
@@ -100,6 +102,7 @@ final class ProductController extends Controller
             description: $form->str('description'),
             categoryId: $form->integer('product_category_id'),
             brandId: $form->integer('brand_id'),
+            gender: Gender::tryFrom($form->str('gender')),
             stock: $form->intField('stock', 'Estoque'),
         );
     }

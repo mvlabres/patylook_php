@@ -14,7 +14,7 @@ if (PHP_VERSION_ID < 80200) {
     // The project targets PHP 8.2; older versions are refused with a clear message instead of a parse error.
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
-    exit('Patylook requer PHP 8.2 ou superior (versão atual: ' . PHP_VERSION . ').');
+    exit('VL Store requer PHP 8.2 ou superior (versão atual: ' . PHP_VERSION . ').');
 }
 
 $missingExtensions = array_values(array_filter(
@@ -26,7 +26,7 @@ if ($missingExtensions !== []) {
         http_response_code(500);
         header('Content-Type: text/plain; charset=utf-8');
     }
-    exit('Patylook precisa das extensões PHP: ' . implode(', ', $missingExtensions) . '. Ative-as no painel da hospedagem (php.ini).' . PHP_EOL);
+    exit('VL Store precisa das extensões PHP: ' . implode(', ', $missingExtensions) . '. Ative-as no painel da hospedagem (php.ini).' . PHP_EOL);
 }
 
 const BASE_PATH = __DIR__;

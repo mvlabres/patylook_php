@@ -19,13 +19,25 @@ final class Product
         public string $categoryName = '',
         public int $brandId = 0, // 0 for products registered before brands existed
         public string $brandName = '',
+        /** Null only while a form has not chosen one; stored products always have a gender. */
+        public ?Gender $gender = null,
         public int $stock = 0,
         public bool $isActive = false,
         public int $createdBy = 0,
         public ?DateTimeImmutable $createdAt = null,
         /** The price valid today, when one exists. Read-only projection. */
         public ?Money $currentPrice = null,
+        /** Sum of every registered cost (product, packaging, logistics, other) of the current price entry. */
+        public ?Money $currentCost = null,
+        /** The markup of the current price entry, as registered. */
+        public ?Percent $currentMarkup = null,
     ) {
+    }
+
+    /** Real gain per unit: the current price minus all registered costs. Null without a current price. */
+    public function realGain(): ?Money
+    {
+        return $this->currentPrice === null || $this->currentCost === null ? null : $this->currentPrice->minus($this->currentCost);
     }
 
     public function normalize(): void
@@ -52,6 +64,9 @@ final class Product
         }
         if ($this->brandId < 0) {
             $v->add('brand_id', 'Marca inválida');
+        }
+        if ($this->gender === null) {
+            $v->add('gender', 'Gênero é obrigatório');
         }
         if ($this->stock < 0) {
             $v->add('stock', 'Estoque não pode ser negativo');

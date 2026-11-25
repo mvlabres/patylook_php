@@ -13,6 +13,7 @@ use Patylook\Core\Response;
 use Patylook\Exceptions\NotFoundException;
 use Patylook\Exceptions\ValidationException;
 use Patylook\Http\Pager;
+use Patylook\Models\Gender;
 use Patylook\Http\Responder;
 use Patylook\Http\UploadReader;
 use Patylook\Support\Str;
@@ -37,6 +38,20 @@ final class ProductImageController extends Controller
      */
     public function serve(Request $request): Response
     {
+        return $this->stream($request);
+    }
+
+    /** Same as serve() for the public showcase, but only for images of active products. */
+    public function servePublic(Request $request): Response
+    {
+        if (!$this->showcase->isPublicImage($request->routeParam('folder'), $request->routeParam('file'))) {
+            throw new NotFoundException();
+        }
+        return $this->stream($request);
+    }
+
+    private function stream(Request $request): Response
+    {
         try {
             $file = $this->images->open($request->routeParam('folder'), $request->routeParam('file'));
         } catch (Throwable) {
@@ -59,11 +74,27 @@ final class ProductImageController extends Controller
 
     public function showcase(Request $request): Response
     {
+        return $this->showcasePage($request, false);
+    }
+
+    /** The showcase without the management menu, open to anyone with the link. */
+    public function publicShowcase(Request $request): Response
+    {
+        return $this->showcasePage($request, true);
+    }
+
+    private function showcasePage(Request $request, bool $public): Response
+    {
         $q = $request->query('q');
-        $result = $this->showcase->list($this->pageNumber($request), $q);
+        // Anything but a known gender means "Todos".
+        $gender = Gender::tryFrom($request->query('gender'));
+        $result = $this->showcase->list($this->pageNumber($request), $q, $gender);
         $page = $this->responder->newPage($request, 'Mostruário', 'showcase');
+        $page->data['public'] = $public;
+        $page->data['seller'] = $public ? $this->showcase->seller() : null;
         $page->data['items'] = $result->items;
         $page->data['query'] = $q;
+        $page->data['gender'] = $gender;
         $page->data['pager'] = Pager::for($request, $result);
         return $this->responder->view('showcase', $page);
     }

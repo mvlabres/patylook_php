@@ -28,6 +28,7 @@ use Patylook\Contracts\ProductImageServiceInterface;
 use Patylook\Contracts\ProductRepositoryInterface;
 use Patylook\Contracts\ProductServiceInterface;
 use Patylook\Contracts\SessionStoreInterface;
+use Patylook\Contracts\MainSellerRepositoryInterface;
 use Patylook\Contracts\ShowcaseServiceInterface;
 use Patylook\Contracts\TransactionManagerInterface;
 use Patylook\Contracts\UserRepositoryInterface;
@@ -53,6 +54,7 @@ use Patylook\Infrastructure\GdImageProcessor;
 use Patylook\Infrastructure\LocalImageStorage;
 use Patylook\Infrastructure\SystemClock;
 use Patylook\Middleware\EnsureReady;
+use Patylook\Middleware\RequireAuth;
 use Patylook\Middleware\SameOrigin;
 use Patylook\Repositories\Mysql\MysqlBrandRepository;
 use Patylook\Repositories\Mysql\MysqlCustomerRepository;
@@ -74,6 +76,7 @@ use Patylook\Services\ProductCategoryService;
 use Patylook\Services\ProductImageService;
 use Patylook\Services\ProductService;
 use Patylook\Services\SessionGarbageCollector;
+use Patylook\Repositories\Mysql\MysqlMainSellerRepository;
 use Patylook\Services\ShowcaseService;
 use Patylook\Services\Support\AdminRule;
 use Patylook\Services\UserService;
@@ -147,6 +150,7 @@ return static function (Container $c, Config $config): void {
     $c->singleton(ProductServiceInterface::class, ProductService::class);
     $c->singleton(PricebookServiceInterface::class, PricebookService::class);
     $c->singleton(ProductImageServiceInterface::class, ProductImageService::class);
+    $c->singleton(MainSellerRepositoryInterface::class, MysqlMainSellerRepository::class);
     $c->singleton(ShowcaseServiceInterface::class, ShowcaseService::class);
     $c->singleton(CustomerServiceInterface::class, CustomerService::class);
     $c->singleton(PaymentTypeServiceInterface::class, PaymentTypeService::class);
@@ -179,5 +183,6 @@ return static function (Container $c, Config $config): void {
         [SameOrigin::class, EnsureReady::class],
         [$c->get(SecurityHeaders::class)],
         [$c->get(SessionGarbageCollector::class)],
+        [RequireAuth::class],
     ));
 };

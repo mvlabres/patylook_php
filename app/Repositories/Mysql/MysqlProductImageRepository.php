@@ -57,6 +57,12 @@ final class MysqlProductImageRepository extends MysqlRepository implements Produ
         return $row === null ? throw new NotFoundException() : $this->hydrate($row);
     }
 
+    public function findByPath(string $path): ProductImage
+    {
+        $row = $this->db->selectOne(self::SELECT . 'WHERE path = ?', [$path]);
+        return $row === null ? throw new NotFoundException() : $this->hydrate($row);
+    }
+
     public function create(ProductImage $image): void
     {
         $this->db->execute(

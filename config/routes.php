@@ -28,6 +28,10 @@ return static function (Router $router): void {
     $router->get('/login', [AuthController::class, 'loginForm']);
     $router->post('/login', [AuthController::class, 'loginSubmit']);
 
+    // Public showcase: no menu, no management actions, and its own image route (active products only).
+    $router->get('/mostruario', [ProductImageController::class, 'publicShowcase']);
+    $router->get('/mostruario/imagens/{folder}/{file}', [ProductImageController::class, 'servePublic']);
+
     // Uploads: the body size is capped before anything reads it.
     $router->group([LimitBody::class, RequireAuth::class], static function (Router $r): void {
         $r->post('/products', [ProductController::class, 'store']);

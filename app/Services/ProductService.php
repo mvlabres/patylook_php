@@ -10,8 +10,10 @@ use Patylook\Contracts\ProductCategoryRepositoryInterface;
 use Patylook\Contracts\ProductRepositoryInterface;
 use Patylook\Contracts\ProductServiceInterface;
 use Patylook\Contracts\TransactionManagerInterface;
+use Patylook\Dto\ListParams;
 use Patylook\Dto\Page;
 use Patylook\Dto\ProductImages;
+use Patylook\Dto\ProductTotals;
 use Patylook\Exceptions\NotFoundException;
 use Patylook\Exceptions\ValidationException;
 use Patylook\Models\ImagePaths;
@@ -47,6 +49,11 @@ final class ProductService implements ProductServiceInterface
         [$page, $params] = Pagination::params($page, $search);
         $result = $this->products->list($params, $this->clock->now()->setTime(0, 0));
         return Pagination::page($result->items, $result->total, $page);
+    }
+
+    public function totals(string $search): ProductTotals
+    {
+        return $this->products->totals(new ListParams($search), $this->clock->now()->setTime(0, 0));
     }
 
     public function get(int $id): Product

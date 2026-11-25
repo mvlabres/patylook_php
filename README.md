@@ -1,6 +1,6 @@
-# Patylook (PHP 8.2)
+# VL Store (PHP 8.2)
 
-Versão em **PHP 8.2** do Patylook, sistema web de gestão de pedidos no estilo e-commerce. É uma
+Versão em **PHP 8.2** do VL Store (antes Patylook), sistema web de gestão de pedidos no estilo e-commerce. É uma
 cópia fiel do projeto em Go (pasta pai): **mesmas regras de negócio, mesmas telas, mesmo banco de
 dados e mesmas credenciais**. Foi criada porque o servidor de hospedagem não executa binários Go.
 
@@ -61,6 +61,11 @@ php bin/patylook serve      # http://localhost:8080
 
 (equivale a `php -S localhost:8080 -t public public/router.php`). Sem login, você é redirecionado
 para `/login`. `GET /healthz` responde `ok` sem tocar no banco.
+
+**Mostruário público:** `/mostruario` pode ser aberto por qualquer pessoa com o link, sem login. Mostra
+só o título, a busca e os produtos ativos (sem menu nem ações de gestão), e as fotos vêm de
+`/mostruario/imagens/...`, que só entrega imagens de produtos ativos. Qualquer outro endereço,
+exista ou não, leva quem não está logado para `/login`.
 
 Primeiro acesso: se a tabela `user` estiver **vazia**, defina `BOOTSTRAP_ADMIN_USERNAME` e
 `BOOTSTRAP_ADMIN_PASSWORD` (mínimo 8 caracteres) e abra qualquer página: o administrador é criado

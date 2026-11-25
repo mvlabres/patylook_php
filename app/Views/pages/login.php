@@ -1,6 +1,6 @@
 <?php /** @var \Patylook\Core\PageData $page */ /** @var \Patylook\Core\View $view */ ?>
 <div class="login-card">
-  <h1>Patylook</h1>
+  <h1><img class="login-logo" src="/static/img/logo.png" width="720" height="355" alt="VL Store · Valentina Labres"></h1>
   <p class="muted">Gestão de pedidos</p>
   <?= $view->partial('formerror', ['errors' => $page->errors]) ?>
   <form method="post" action="/login">

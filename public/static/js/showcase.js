@@ -1,3 +1,14 @@
+// Gender filter: choosing an option applies it right away, keeping the search text. It lives in its
+// own block because the gallery below stops early on pages without products (empty filter result).
+(function () {
+  'use strict';
+
+  var form = document.querySelector('[data-filter-form]');
+  var select = form && form.querySelector('select[name="gender"]');
+  if (!select) return;
+  select.addEventListener('change', function () { form.submit(); });
+})();
+
 // Showcase gallery: clicking a product banner opens its images, the clicked one highlighted,
 // with the remaining images in a thumbnail carousel.
 (function () {

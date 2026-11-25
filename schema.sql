@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS `patylook`.`product` (
   `sku` VARCHAR(45) NOT NULL,
   `product_category_id` INT NOT NULL,
   `brand_id` INT NULL,
+  `gender` VARCHAR(20) NOT NULL DEFAULT 'unisex',
   `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   `stock` INT NOT NULL,
   `is_active` BOOLEAN NOT NULL DEFAULT TRUE,
@@ -129,7 +130,8 @@ CREATE TABLE IF NOT EXISTS `patylook`.`product` (
     REFERENCES `patylook`.`user` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `chk_product_stock` CHECK (`stock` >= 0))
+  CONSTRAINT `chk_product_stock` CHECK (`stock` >= 0),
+  CONSTRAINT `chk_product_gender` CHECK (`gender` IN ('male', 'female', 'unisex')))
 ENGINE = InnoDB;
 
 
@@ -304,6 +306,22 @@ CREATE TABLE IF NOT EXISTS `patylook`.`product_images` (
     REFERENCES `patylook`.`user` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `patylook`.`main_seller`
+-- Vendedor principal: contato exibido no mostruário público (link para o WhatsApp).
+-- whatsapp guarda só dígitos, com DDI e DDD (ex.: 5511999999999).
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `patylook`.`main_seller` ;
+
+CREATE TABLE IF NOT EXISTS `patylook`.`main_seller` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(100) NOT NULL,
+  `whatsapp` VARCHAR(20) NOT NULL,
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
 

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Patylook\Tests;
 
 use DateTimeImmutable;
+use Patylook\Dto\ProductTotals;
 use Patylook\Exceptions\ValidationException;
 use Patylook\Models\Customer;
 use Patylook\Models\ImagePaths;
+use Patylook\Models\MainSeller;
 use Patylook\Models\Money;
 use Patylook\Models\Order;
 use Patylook\Models\OrderItem;
@@ -140,6 +142,32 @@ final class DomainTest extends TestCase
                 new OrderItem(productId: 2, quantity: 1, unitPrice: new Money(2000)), // 20,00
             ],
         );
+    }
+
+    public function testMainSellerWhatsappLink(): void
+    {
+        $this->assertSame('5545920020405', (new MainSeller(1, 'P', '45920020405'))->whatsappDigits(), 'DDD + número ganha o 55');
+        $this->assertSame('5511999999999', (new MainSeller(1, 'P', '+55 (11) 99999-9999'))->whatsappDigits());
+        $this->assertSame('551415555010', (new MainSeller(1, 'P', '1415555010'))->whatsappDigits(), 'fixo com DDD (10 dígitos) também ganha o 55');
+        $this->assertSame(null, (new MainSeller(1, 'P', 'abc'))->whatsappDigits());
+        $this->assertSame(null, (new MainSeller(1, 'P', ''))->chatUrl('oi'));
+        $this->assertSame(
+            'https://wa.me/5511999999999?text=Ol%C3%A1.%20Gostaria%20de%20saber%20mais%20detalhes%20do%20produto%20Perfume%20Ferrari%20Black%20-%20PER-FER-1.',
+            (new MainSeller(1, 'P', '11999999999'))->chatUrl(MainSeller::productMessage('Perfume Ferrari Black', 'PER-FER-1')),
+        );
+    }
+
+    public function testProductRealGainAndTotals(): void
+    {
+        $p = new Product(currentPrice: new Money(9000), currentCost: new Money(6000));
+        $this->assertSame(3000, $p->realGain()?->cents);
+        $this->assertSame(null, (new Product())->realGain());
+        $this->assertSame(-500, (new Product(currentPrice: new Money(5500), currentCost: new Money(6000)))->realGain()?->cents, 'prejuízo fica negativo');
+
+        $t = new ProductTotals(2, new Money(15000), new Money(10000));
+        $this->assertSame(5000, $t->gain()->cents);
+        $this->assertSame(5000, $t->markup()?->hundredths);
+        $this->assertSame(null, (new ProductTotals(0, Money::zero(), Money::zero()))->markup(), 'sem custos não há markup');
     }
 
     public function testOrderCalculate(): void

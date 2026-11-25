@@ -40,12 +40,22 @@ final class SchemaVerifier
         if (!$this->tableExists('brand')) {
             throw new SchemaException('tabela brand não encontrada; execute o bloco dela no schema.sql (somente esse bloco)');
         }
+        if (!$this->tableExists('main_seller')) {
+            throw new SchemaException('tabela main_seller não encontrada; aplique migrations/003_add_main_seller.sql');
+        }
         $n = (int) $this->db->scalar(
             'SELECT COUNT(*) FROM information_schema.COLUMNS '
             . "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'product' AND COLUMN_NAME = 'brand_id'",
         );
         if ($n === 0) {
             throw new SchemaException('a coluna product.brand_id não existe; aplique migrations/002_add_product_brand.sql');
+        }
+        $n = (int) $this->db->scalar(
+            'SELECT COUNT(*) FROM information_schema.COLUMNS '
+            . "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'product' AND COLUMN_NAME = 'gender'",
+        );
+        if ($n === 0) {
+            throw new SchemaException('a coluna product.gender não existe; aplique migrations/004_add_product_gender.sql');
         }
     }
 

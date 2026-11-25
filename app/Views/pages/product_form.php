@@ -31,6 +31,14 @@ $isNew = !$p->id;
     <?php if ($page->data['brands'] === []): ?><small class="hint">Nenhuma marca ativa. <a href="/brands/new">Cadastre uma marca</a> para continuar.</small><?php endif ?>
     <?php if (isset($errors['brand_id'])): ?><small class="field-error"><?= e($errors['brand_id']) ?></small><?php endif ?>
   </div>
+  <div class="field<?= isset($errors['gender']) ? ' has-error' : '' ?>">
+    <label for="f-gender">Gênero</label>
+    <select id="f-gender" name="gender" required>
+      <option value="">Selecione</option>
+      <?php foreach (\Patylook\Models\Gender::cases() as $g): ?><option value="<?= e($g->value) ?>" <?= $g === $p->gender ? 'selected' : '' ?>><?= e($g->label()) ?></option><?php endforeach ?>
+    </select>
+    <?php if (isset($errors['gender'])): ?><small class="field-error"><?= e($errors['gender']) ?></small><?php endif ?>
+  </div>
   <div class="field<?= isset($errors['sku']) ? ' has-error' : '' ?>">
     <label for="f-sku">SKU</label>
     <input id="f-sku" type="text" value="<?= e($p->sku) ?>" readonly<?= $isNew ? ' placeholder="Selecione categoria e marca" data-sku-preview' : '' ?>>

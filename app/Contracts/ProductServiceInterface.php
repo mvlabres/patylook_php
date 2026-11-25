@@ -6,6 +6,7 @@ namespace Patylook\Contracts;
 
 use Patylook\Dto\Page;
 use Patylook\Dto\ProductImages;
+use Patylook\Dto\ProductTotals;
 use Patylook\Models\Product;
 use Patylook\Models\User;
 
@@ -13,6 +14,9 @@ interface ProductServiceInterface
 {
     /** @return Page<Product> */
     public function list(int $page, string $search): Page;
+
+    /** Totals over every product matching the search, regardless of the page shown. */
+    public function totals(string $search): ProductTotals;
 
     public function get(int $id): Product;
 

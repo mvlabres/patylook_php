@@ -9,9 +9,11 @@ use Patylook\Contracts\ClockInterface;
 use Patylook\Contracts\ProductRepositoryInterface;
 use Patylook\Dto\ListParams;
 use Patylook\Dto\ListResult;
+use Patylook\Dto\ProductTotals;
 use Patylook\Exceptions\InsufficientStockException;
 use Patylook\Exceptions\NotFoundException;
 use Patylook\Infrastructure\Database\Database;
+use Patylook\Models\Gender;
 use Patylook\Models\Product;
 
 final class MysqlProductRepository extends MysqlRepository implements ProductRepositoryInterface
@@ -22,12 +24,18 @@ final class MysqlProductRepository extends MysqlRepository implements ProductRep
      * names are an error.
      */
     private const SELECT = "SELECT p.id, p.name AS name, COALESCE(p.description, '') AS description, p.sku, p.product_category_id, "
-        . 'pc.name AS category_name, p.brand_id, b.name AS brand_name, '
+        . 'pc.name AS category_name, p.brand_id, b.name AS brand_name, p.gender, '
         . 'p.stock, p.is_active, p.created_by, p.created_at, '
-        . '(SELECT pb.final_price FROM pricebook pb WHERE pb.product_id = p.id AND pb.valid_from <= ? '
-        . 'AND (pb.valid_to IS NULL OR pb.valid_to >= ?) ORDER BY pb.valid_from DESC, pb.id DESC LIMIT 1) AS current_price '
+        . 'cp.final_price AS current_price, cp.markup_percent AS current_markup, '
+        . 'cp.product_cost + cp.packaging_cost + cp.logistics_cost + cp.other_costs AS current_cost '
         . 'FROM product p JOIN product_category pc ON pc.id = p.product_category_id '
-        . 'LEFT JOIN brand b ON b.id = p.brand_id ';
+        . 'LEFT JOIN brand b ON b.id = p.brand_id '
+        . self::CURRENT_PRICE_JOIN;
+
+    /** Joins the price entry valid on a date (two date placeholders). */
+    private const CURRENT_PRICE_JOIN = 'LEFT JOIN pricebook cp ON cp.id = (SELECT pb.id FROM pricebook pb WHERE pb.product_id = p.id '
+        . 'AND pb.valid_from <= ? AND (pb.valid_to IS NULL OR pb.valid_to >= ?) '
+        . 'ORDER BY pb.valid_from DESC, pb.id DESC LIMIT 1) ';
 
     public function __construct(Database $db, private readonly ClockInterface $clock)
     {
@@ -46,11 +54,14 @@ final class MysqlProductRepository extends MysqlRepository implements ProductRep
             categoryName: (string) $row['category_name'],
             brandId: (int) $row['brand_id'],
             brandName: (string) ($row['brand_name'] ?? ''),
+            gender: Gender::tryFrom((string) $row['gender']),
             stock: (int) $row['stock'],
             isActive: (bool) $row['is_active'],
             createdBy: (int) $row['created_by'],
             createdAt: $this->timestamp($row['created_at']),
             currentPrice: $row['current_price'] === null ? null : self::money($row['current_price']),
+            currentCost: $row['current_cost'] === null ? null : self::money($row['current_cost']),
+            currentMarkup: $row['current_markup'] === null ? null : self::percent($row['current_markup']),
         );
     }
 
@@ -73,6 +84,10 @@ final class MysqlProductRepository extends MysqlRepository implements ProductRep
         if ($params->onlyActive) {
             $conditions[] = 'p.is_active = TRUE';
         }
+        if ($params->gender !== null) {
+            $conditions[] = 'p.gender = ?';
+            $args[] = $params->gender->value;
+        }
         $where = $conditions === [] ? '' : 'WHERE ' . implode(' AND ', $conditions) . ' ';
 
         $total = (int) $this->db->scalar('SELECT COUNT(*) FROM product p ' . $where, $args);
@@ -82,6 +97,28 @@ final class MysqlProductRepository extends MysqlRepository implements ProductRep
             [$day, $day, ...$args, $params->limit, $params->offset],
         );
         return new ListResult(array_map($this->hydrate(...), $rows), $total);
+    }
+
+    public function totals(ListParams $params, DateTimeImmutable $on): ProductTotals
+    {
+        $args = [];
+        $where = '';
+        if ($params->search !== '') {
+            $like = self::likePattern($params->search);
+            $where = 'WHERE (p.name LIKE ? OR p.sku LIKE ?) ';
+            array_push($args, $like, $like);
+        }
+        if ($params->onlyActive) {
+            $where .= ($where === '' ? 'WHERE ' : 'AND ') . 'p.is_active = TRUE ';
+        }
+        $day = self::dateParam($on);
+        $row = $this->db->selectOne(
+            'SELECT COUNT(cp.id) AS priced, COALESCE(SUM(cp.final_price), 0) AS price, '
+            . 'COALESCE(SUM(cp.product_cost + cp.packaging_cost + cp.logistics_cost + cp.other_costs), 0) AS cost '
+            . 'FROM product p ' . self::CURRENT_PRICE_JOIN . $where,
+            [$day, $day, ...$args],
+        );
+        return new ProductTotals((int) $row['priced'], self::money($row['price']), self::money($row['cost']));
     }
 
     public function listSellable(DateTimeImmutable $on): array
@@ -98,11 +135,11 @@ final class MysqlProductRepository extends MysqlRepository implements ProductRep
     public function create(Product $product): void
     {
         $this->db->execute(
-            'INSERT INTO product (name, description, sku, product_category_id, brand_id, stock, is_active, created_by) '
-            . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO product (name, description, sku, product_category_id, brand_id, gender, stock, is_active, created_by) '
+            . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 $product->name, self::nullString($product->description), $product->sku, $product->categoryId,
-                self::nullInt($product->brandId), $product->stock, $product->isActive, $product->createdBy,
+                self::nullInt($product->brandId), $product->gender?->value ?? Gender::Unisex->value, $product->stock, $product->isActive, $product->createdBy,
             ],
         );
         $product->id = $this->db->lastInsertId();
@@ -112,10 +149,10 @@ final class MysqlProductRepository extends MysqlRepository implements ProductRep
     {
         // The SKU is deliberately absent: it is set once, at creation.
         $this->db->execute(
-            'UPDATE product SET name = ?, description = ?, product_category_id = ?, brand_id = ?, stock = ? WHERE id = ?',
+            'UPDATE product SET name = ?, description = ?, product_category_id = ?, brand_id = ?, gender = ?, stock = ? WHERE id = ?',
             [
                 $product->name, self::nullString($product->description), $product->categoryId,
-                self::nullInt($product->brandId), $product->stock, $product->id,
+                self::nullInt($product->brandId), $product->gender?->value ?? Gender::Unisex->value, $product->stock, $product->id,
             ],
         );
     }

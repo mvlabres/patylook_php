@@ -25,7 +25,7 @@ DirectoryIndex index.php
 </IfModule>
 
 <IfModule mod_headers.c>
-    <FilesMatch "\.(css|js)$">
+    <FilesMatch "\.(css|js|png|woff2)$">
         Header set Cache-Control "public, max-age=3600"
     </FilesMatch>
 </IfModule>

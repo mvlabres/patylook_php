@@ -23,12 +23,14 @@ use Patylook\Dto\ListParams;
 use Patylook\Dto\ListResult;
 use Patylook\Dto\OrderFilter;
 use Patylook\Dto\OrderSummary;
+use Patylook\Dto\ProductTotals;
 use Patylook\Dto\StoredFile;
 use Patylook\Exceptions\ConflictException;
 use Patylook\Exceptions\InsufficientStockException;
 use Patylook\Exceptions\NotFoundException;
 use Patylook\Models\Brand;
 use Patylook\Models\Customer;
+use Patylook\Models\Money;
 use Patylook\Models\Order;
 use Patylook\Models\OrderStatus;
 use Patylook\Models\PaymentType;
@@ -298,6 +300,21 @@ final class FakeProducts implements ProductRepositoryInterface, Snapshottable
         return new ListResult(array_values($this->items), count($this->items));
     }
 
+    public function totals(ListParams $params, DateTimeImmutable $on): ProductTotals
+    {
+        $price = Money::zero();
+        $cost = Money::zero();
+        $priced = 0;
+        foreach ($this->items as $p) {
+            if ($p->currentPrice !== null) {
+                $priced++;
+                $price = $price->plus($p->currentPrice);
+                $cost = $cost->plus($p->currentCost ?? Money::zero());
+            }
+        }
+        return new ProductTotals($priced, $price, $cost);
+    }
+
     public function listSellable(DateTimeImmutable $on): array
     {
         return array_values($this->items);
@@ -513,6 +530,16 @@ final class FakeImageRows implements ProductImageRepositoryInterface, Snapshotta
     public function findById(int $id): ProductImage
     {
         return isset($this->rows[$id]) ? clone $this->rows[$id] : throw new NotFoundException();
+    }
+
+    public function findByPath(string $path): ProductImage
+    {
+        foreach ($this->rows as $r) {
+            if ($r->path === $path) {
+                return clone $r;
+            }
+        }
+        throw new NotFoundException();
     }
 
     public function create(ProductImage $image): void

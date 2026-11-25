@@ -19,7 +19,7 @@ $products = $page->data['products'];
 <?php if ($products !== []): ?>
 <div class="table-wrap">
 <table>
-  <thead><tr><th>Nome</th><th>SKU</th><th>Categoria</th><th class="num">Estoque</th><th class="num">Preço atual</th><th>Status</th><th></th></tr></thead>
+  <thead><tr><th>Nome</th><th>SKU</th><th>Categoria</th><th class="num">Estoque</th><th class="num">Preço atual</th><th class="num">Custos</th><th class="num">Markup</th><th class="num">Ganho real</th><th>Status</th><th></th></tr></thead>
   <tbody>
   <?php foreach ($products as $p): ?>
     <tr class="<?= $p->isActive ? '' : 'inactive' ?>">
@@ -28,6 +28,10 @@ $products = $page->data['products'];
       <td><?= e($p->categoryName) ?></td>
       <td class="num <?= $p->stock <= 5 ? 'warn' : '' ?>"><?= e($p->stock) ?></td>
       <td class="num"><?= e($fmt->moneyOrDash($p->currentPrice)) ?></td>
+      <td class="num"><?= e($fmt->moneyOrDash($p->currentCost)) ?></td>
+      <td class="num"><?= $p->currentMarkup === null ? '—' : e($fmt->percent($p->currentMarkup)) ?></td>
+      <?php $gain = $p->realGain(); ?>
+      <td class="num gain<?= $gain !== null && $gain->isNegative() ? ' loss' : '' ?>"><?= e($fmt->moneyOrDash($gain)) ?></td>
       <td><?= $view->partial('active_badge', ['active' => $p->isActive, 'on' => 'Ativo', 'off' => 'Inativo']) ?></td>
       <td class="actions">
         <a href="/products/<?= e($p->id) ?>/edit">Editar</a>
@@ -41,6 +45,17 @@ $products = $page->data['products'];
     </tr>
   <?php endforeach ?>
   </tbody>
+  <?php $t = $page->data['totals']; $tm = $t->markup(); ?>
+  <tfoot>
+    <tr>
+      <th colspan="4">Total (<?= e($t->priced) ?> <?= $t->priced === 1 ? 'produto com preço' : 'produtos com preço' ?>, de todas as páginas)</th>
+      <td class="num"><?= e($fmt->money($t->price)) ?></td>
+      <td class="num"><?= e($fmt->money($t->cost)) ?></td>
+      <td class="num"><?= $tm === null ? '—' : e($fmt->percent($tm)) ?></td>
+      <td class="num gain<?= $t->gain()->isNegative() ? ' loss' : '' ?>"><?= e($fmt->money($t->gain())) ?></td>
+      <td colspan="2"></td>
+    </tr>
+  </tfoot>
 </table>
 </div>
 <?= $view->partial('pagination', ['pager' => $page->data['pager']]) ?>
