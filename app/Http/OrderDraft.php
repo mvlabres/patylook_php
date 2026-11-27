@@ -16,6 +16,7 @@ final readonly class OrderDraft
         public string $discount = '',
         public string $notes = '',
         public array $rows = [],
+        public string $installments = '',
     ) {
     }
 }

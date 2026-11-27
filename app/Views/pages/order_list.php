@@ -6,6 +6,7 @@
  */
 $orders = $page->data['orders'];
 $status = $page->data['status'];
+$view->script('/static/js/order_whatsapp.js');
 ?>
 <div class="section-head">
   <h1>Pedidos</h1>
@@ -26,7 +27,7 @@ $status = $page->data['status'];
 <?php if ($orders !== []): ?>
 <div class="table-wrap">
 <table>
-  <thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Pagamento</th><th>Atendente</th><th>Status</th><th class="num">Total</th></tr></thead>
+  <thead><tr><th>#</th><th>Data</th><th>Cliente</th><th>Pagamento</th><th>Atendente</th><th>Status</th><th class="num">Total</th><th></th></tr></thead>
   <tbody>
   <?php foreach ($orders as $o): ?>
     <tr>
@@ -37,12 +38,14 @@ $status = $page->data['status'];
       <td><?= e($o->userName) ?></td>
       <td><?= $view->partial('status_badge', ['status' => $o->status]) ?></td>
       <td class="num"><?= e($fmt->money($o->total)) ?></td>
+      <td class="actions"><?php if ($o->status === \Patylook\Models\OrderStatus::Completed): ?><button type="button" class="btn btn-small btn-whatsapp-inline" data-whatsapp-order="<?= e($o->id) ?>" aria-label="Enviar resumo do pedido <?= e($o->id) ?> por WhatsApp">WhatsApp</button><?php endif ?></td>
     </tr>
   <?php endforeach ?>
   </tbody>
 </table>
 </div>
 <?= $view->partial('pagination', ['pager' => $page->data['pager']]) ?>
+<?= $view->partial('whatsapp_dialog') ?>
 <?php else: ?>
 <p class="empty">Nenhum pedido encontrado.</p>
 <?php endif ?>

@@ -197,8 +197,10 @@ CREATE TABLE IF NOT EXISTS `patylook`.`payment_type` (
   `name` VARCHAR(45) NOT NULL,
   `description` VARCHAR(45) NOT NULL,
   `surcharge_percent` DECIMAL(5,2) NOT NULL,
+  `category` VARCHAR(20) NOT NULL DEFAULT 'cash',
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `name_UNIQUE` (`name` ASC))
+  UNIQUE INDEX `name_UNIQUE` (`name` ASC),
+  CONSTRAINT `chk_payment_category` CHECK (`category` IN ('cash', 'credit', 'debit')))
 ENGINE = InnoDB;
 
 
@@ -219,6 +221,7 @@ CREATE TABLE IF NOT EXISTS `patylook`.`orders` (
   `payment_addition` DECIMAL(12,2) NOT NULL DEFAULT 0,
   `total` DECIMAL(12,2) NOT NULL DEFAULT 0,
   `notes` TEXT NULL,
+  `installments` INT NULL,
   PRIMARY KEY (`id`),
   INDEX `fk_order_user1_idx` (`user_id` ASC),
   INDEX `fk_order_customer1_idx` (`customer_id` ASC),

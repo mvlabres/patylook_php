@@ -17,6 +17,8 @@ final readonly class CreateOrderInput
         public Money $discount,
         public string $notes,
         public array $items,
+        /** Only used when the payment type is credit. */
+        public ?int $installments = null,
     ) {
     }
 }

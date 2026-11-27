@@ -14,12 +14,13 @@ $types = $page->data['paymentTypes'];
 <?php if ($types !== []): ?>
 <div class="table-wrap">
 <table>
-  <thead><tr><th>Nome</th><th>Descrição</th><th class="num">Acréscimo</th><th></th></tr></thead>
+  <thead><tr><th>Nome</th><th>Descrição</th><th>Categoria</th><th class="num">Acréscimo</th><th></th></tr></thead>
   <tbody>
   <?php foreach ($types as $t): ?>
     <tr>
       <td><?= e($t->name) ?></td>
       <td><?= e($t->description) ?></td>
+      <td><?= e($t->category?->label() ?? '—') ?></td>
       <td class="num"><?= e($fmt->percent($t->surchargePercent)) ?></td>
       <td class="actions">
         <a href="/payment-types/<?= e($t->id) ?>/edit">Editar</a>

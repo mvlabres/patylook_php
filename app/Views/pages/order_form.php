@@ -27,9 +27,24 @@ $view->script('/static/js/order.js');
       <label for="f-payment_type_id">Forma de pagamento</label>
       <select id="f-payment_type_id" name="payment_type_id" required>
         <option value="">Selecione</option>
-        <?php foreach ($page->data['paymentTypes'] as $t): ?><option value="<?= e($t->id) ?>" data-surcharge="<?= e($t->surchargePercent->decimal()) ?>" <?= $t->id === $form->paymentTypeId ? 'selected' : '' ?>><?= e($t->name) ?><?= $t->surchargePercent->isZero() ? '' : ' (+' . e($fmt->percent($t->surchargePercent)) . ')' ?></option><?php endforeach ?>
+        <?php foreach ($page->data['paymentTypes'] as $t): ?><option value="<?= e($t->id) ?>" data-surcharge="<?= e($t->surchargePercent->decimal()) ?>" data-category="<?= e($t->category?->value ?? '') ?>" <?= $t->id === $form->paymentTypeId ? 'selected' : '' ?>><?= e($t->name) ?><?= $t->surchargePercent->isZero() ? '' : ' (+' . e($fmt->percent($t->surchargePercent)) . ')' ?></option><?php endforeach ?>
       </select>
       <?php if (isset($errors['payment_type_id'])): ?><small class="field-error"><?= e($errors['payment_type_id']) ?></small><?php endif ?>
+    </div>
+  </div>
+
+  <?php $credit = false; foreach ($page->data['paymentTypes'] as $t) { $credit = $credit || ($t->id === $form->paymentTypeId && $t->category === \Patylook\Models\PaymentCategory::Credit); } ?>
+  <div class="form-grid" id="installments-row"<?= $credit ? '' : ' hidden' ?>>
+    <div class="field<?= isset($errors['installments']) ? ' has-error' : '' ?>">
+      <label for="f-installments">Parcelas</label>
+      <input id="f-installments" name="installments" type="number" inputmode="numeric" min="1" max="<?= e(\Patylook\Models\Order::MAX_INSTALLMENTS) ?>" step="1" value="<?= e($form->installments) ?>" placeholder="Ex.: 3"<?= $credit ? '' : ' disabled' ?>>
+      <small class="hint">Pagamento no crédito: quantidade de parcelas (até <?= e(\Patylook\Models\Order::MAX_INSTALLMENTS) ?>).</small>
+      <?php if (isset($errors['installments'])): ?><small class="field-error"><?= e($errors['installments']) ?></small><?php endif ?>
+    </div>
+    <div class="field">
+      <label for="t-installment">Valor de cada parcela</label>
+      <input id="t-installment" type="text" value="—" readonly tabindex="-1">
+      <small class="hint">Só visual: valor final (após desconto e acréscimo) dividido pelas parcelas.</small>
     </div>
   </div>
 
@@ -50,6 +65,7 @@ $view->script('/static/js/order.js');
     <div class="field<?= isset($errors['discount']) ? ' has-error' : '' ?>">
       <label for="f-discount">Desconto no pedido (R$)</label>
       <input id="f-discount" name="discount" type="text" inputmode="decimal" value="<?= e($form->discount) ?>" placeholder="0,00">
+      <small class="hint">Abatido do valor final, depois do acréscimo da forma de pagamento.</small>
       <?php if (isset($errors['discount'])): ?><small class="field-error"><?= e($errors['discount']) ?></small><?php endif ?>
     </div>
     <div class="field">
@@ -60,8 +76,8 @@ $view->script('/static/js/order.js');
 
   <dl class="totals" id="totals">
     <div><dt>Subtotal</dt><dd id="t-subtotal">R$ 0,00</dd></div>
-    <div><dt>Desconto</dt><dd id="t-discount">R$ 0,00</dd></div>
     <div><dt>Acréscimo do pagamento</dt><dd id="t-addition">R$ 0,00</dd></div>
+    <div><dt>Desconto no pedido</dt><dd id="t-discount">R$ 0,00</dd></div>
     <div class="grand"><dt>Total</dt><dd id="t-total">R$ 0,00</dd></div>
   </dl>
   <p class="muted">Valores de prévia. Preço, custo e estoque são conferidos e gravados pelo servidor ao salvar.</p>

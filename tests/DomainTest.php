@@ -19,6 +19,7 @@ use Patylook\Models\Pricebook;
 use Patylook\Models\Product;
 use Patylook\Models\ProductImage;
 use Patylook\Models\User;
+use Patylook\Support\Whatsapp;
 
 /** Business rules of the models, ported from the Go domain tests. */
 final class DomainTest extends TestCase
@@ -144,6 +145,19 @@ final class DomainTest extends TestCase
         );
     }
 
+    public function testWhatsappDigitsAndCustomerFirstName(): void
+    {
+        $this->assertSame('5545920020405', Whatsapp::digits('(45) 92002-0405'));
+        $this->assertSame('5545920020405', Whatsapp::digits('+55 45 92002-0405'));
+        $this->assertSame(null, Whatsapp::digits('sem telefone'));
+        $this->assertSame('https://wa.me/5545920020405', Whatsapp::chatUrl('5545920020405'));
+        $this->assertSame('https://wa.me/5545920020405?text=a%20b', Whatsapp::chatUrl('5545920020405', 'a b'));
+
+        $this->assertSame('Maria', (new Customer(name: 'MARIA  da Silva'))->firstName());
+        $this->assertSame('João', (new Customer(name: '  joão paulo'))->firstName());
+        $this->assertSame('', (new Customer(name: ''))->firstName());
+    }
+
     public function testMainSellerWhatsappLink(): void
     {
         $this->assertSame('5545920020405', (new MainSeller(1, 'P', '45920020405'))->whatsappDigits(), 'DDD + número ganha o 55');
@@ -174,10 +188,17 @@ final class DomainTest extends TestCase
     {
         $o = $this->order();
         $o->calculate(new Percent(500)); // 5% surcharge
-        // subtotal 110,00; minus 10,00 = 100,00; +5% = 5,00
+        // subtotal 110,00; +5% = 5,50 -> 115,50; the 10,00 discount comes off the final value -> 105,50
         $this->assertSame(11000, $o->subtotal->cents);
-        $this->assertSame(500, $o->paymentAddition->cents);
-        $this->assertSame(10500, $o->total->cents);
+        $this->assertSame(550, $o->paymentAddition->cents);
+        $this->assertSame(10550, $o->total->cents);
+
+        $o = $this->order();
+        $o->discount = new Money(11550); // the whole final value (with surcharge) is allowed...
+        $o->calculate(new Percent(500));
+        $this->assertSame(0, $o->total->cents);
+        $o->discount = new Money(11551); // ...one cent more is not
+        $this->assertThrows(ValidationException::class, fn () => $o->calculate(new Percent(500)), 'discount > final value');
 
         $mutations = [
             'no items' => function (Order $o): void { $o->items = []; },

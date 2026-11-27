@@ -21,6 +21,13 @@ final class Customer
     ) {
     }
 
+    /** The first word of the name, capitalized ("MARIA SILVA" -> "Maria"); used to greet the customer. */
+    public function firstName(): string
+    {
+        $parts = preg_split('/\s+/u', trim($this->name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        return $parts === [] ? '' : mb_convert_case($parts[0], MB_CASE_TITLE, 'UTF-8');
+    }
+
     public function normalize(): void
     {
         $this->name = Str::trim($this->name);

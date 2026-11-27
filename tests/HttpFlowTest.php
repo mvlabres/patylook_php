@@ -279,7 +279,15 @@ final class HttpFlowTest extends TestCase
         $this->assertSame('/customers', $this->location($r));
         $this->assertSame('52998224725', $this->scalar('SELECT document FROM ' . $this->database . '.customer'));
         $this->assertSame(422, $this->submit('/customers/new', '/customers', ['name' => 'X', 'document' => '123', 'phone' => '1', 'email' => 'bad'])->status());
-        $this->submit('/payment-types/new', '/payment-types', ['name' => 'Cartão', 'description' => 'Crédito', 'surcharge_percent' => '5,00']);
+        $this->assertContains('Débito', $this->get('/payment-types/new')->body(), 'campo de categoria no cadastro');
+        $r = $this->submit('/payment-types/new', '/payment-types', ['name' => 'Sem categoria', 'description' => 'x', 'surcharge_percent' => '0']);
+        $this->assertSame(422, $r->status());
+        $this->assertContains('Categoria é obrigatória', $r->body());
+        $this->assertSame(422, $this->submit('/payment-types/new', '/payment-types', ['name' => 'Inválida', 'description' => 'x', 'category' => 'cheque'])->status());
+        $r = $this->submit('/payment-types/new', '/payment-types', ['name' => 'Cartão', 'description' => 'Parcelado', 'surcharge_percent' => '5,00', 'category' => 'credit']);
+        $this->assertSame('/payment-types', $this->location($r));
+        $this->assertSame('credit', $this->scalar("SELECT category FROM `{$this->database}`.payment_type WHERE name = 'Cartão'"));
+        $this->assertContains('>Crédito<', $this->get('/payment-types')->body(), 'categoria na lista');
 
         // A product (created with images through the upload form in production; seeded here).
         $db = $this->database;
@@ -313,21 +321,69 @@ final class HttpFlowTest extends TestCase
 
         // Order: totals, snapshots and stock.
         $order = ['customer_id' => '1', 'payment_type_id' => '1', 'discount' => '5,00', 'notes' => 'teste',
-            'product_id' => ['1'], 'quantity' => ['2'], 'item_discount' => ['10,00']];
-        $r = $this->submit('/orders/new', '/orders', ['quantity' => ['99']] + ['customer_id' => '1', 'payment_type_id' => '1', 'product_id' => ['1']]);
+            'product_id' => ['1'], 'quantity' => ['2'], 'item_discount' => ['10,00'], 'installments' => '3'];
+        $r = $this->submit('/orders/new', '/orders', ['quantity' => ['99']] + ['customer_id' => '1', 'payment_type_id' => '1', 'product_id' => ['1'], 'installments' => '3']);
         $this->assertSame(422, $r->status());
         $this->assertContains('Estoque insuficiente para Perfume', $r->body());
+
+        // Credit payments need the installments (1 to 24); the form offers the field and keeps what was typed.
+        $form = $this->get('/orders/new')->body();
+        $this->assertContains('data-category="credit"', $form);
+        $this->assertContains('id="installments-row" hidden', $form, 'campo escondido até escolher crédito');
+        foreach (['', '0', '25', 'abc'] as $bad) {
+            $r = $this->submit('/orders/new', '/orders', ['installments' => $bad] + $order);
+            $this->assertSame(422, $r->status(), "parcelas '$bad'");
+            $this->assertContains('quantidade de parcelas', $r->body());
+        }
+        $this->assertContains('value="25"', $this->submit('/orders/new', '/orders', ['installments' => '25'] + $order)->body(), 'valor digitado preservado');
+        $this->assertSame(0, (int) $this->scalar("SELECT COUNT(*) FROM `$db`.orders"), 'nada gravado com parcelas inválidas');
         $r = $this->submit('/orders/new', '/orders', $order);
         $this->assertSame(303, $r->status());
         $id = (int) basename($this->location($r));
-        $this->assertSame('173.25', $this->scalar("SELECT total FROM `$db`.orders WHERE id = $id"), '170,00 - 5,00 + 5%');
+        $this->assertSame('173.50', $this->scalar("SELECT total FROM `$db`.orders WHERE id = $id"), '170,00 + 5% - 5,00 (desconto depois do acréscimo)');
+        $this->assertSame(3, (int) $this->scalar("SELECT installments FROM `$db`.orders WHERE id = $id"), 'parcelas gravadas');
+        $this->assertContains('3x de R$ 57,83', $this->get("/orders/$id")->body(), '173,50 / 3, arredondado ao centavo');
         $this->assertSame('90.00', $this->scalar("SELECT unit_price FROM `$db`.order_item WHERE order_id = $id"));
         $this->assertSame('60.00', $this->scalar("SELECT unit_cost FROM `$db`.order_item WHERE order_id = $id"));
         $this->assertSame(8, (int) $this->scalar("SELECT stock FROM `$db`.product"));
-        $this->assertContains('R$ 173,25', $this->get("/orders/$id")->body());
+        $this->assertContains('R$ 173,50', $this->get("/orders/$id")->body());
 
-        $this->submit("/orders/$id", "/orders/$id/status", ['status' => 'completed']);
+        // The WhatsApp summary only exists for completed orders.
+        $this->assertSame(409, $this->get("/orders/$id/banner.png")->status(), 'pedido aberto não gera imagem');
+        $this->assertSame(409, $this->get("/orders/$id/whatsapp")->status());
+        $this->assertFalse(str_contains($this->get("/orders/$id")->body(), 'Enviar por WhatsApp'), 'sem botão enquanto aberto');
+
+        $r = $this->submit("/orders/$id", "/orders/$id/status", ['status' => 'completed']);
+        $this->assertSame("/orders/$id?whatsapp=1", $this->location($r), 'concluir leva ao pedido pedindo o popup');
         $this->assertSame('completed', $this->scalar("SELECT status FROM `$db`.orders WHERE id = $id"));
+        $detail = $this->get("/orders/$id", ['whatsapp' => '1'])->body();
+        $this->assertContains('data-whatsapp-auto="' . $id . '"', $detail, 'popup aberto logo após concluir');
+        $this->assertContains('Enviar por WhatsApp', $detail);
+        $this->assertFalse(str_contains($this->get("/orders/$id")->body(), 'data-whatsapp-auto'), 'só abre quando pedido na URL');
+        $this->assertContains('data-whatsapp-order="' . $id . '"', $this->get('/orders')->body(), 'botão na lista de pedidos');
+
+        $this->pdo?->exec("INSERT INTO `$db`.main_seller (name, whatsapp) VALUES ('Patricia', '45920020405')");
+        $share = json_decode($this->get("/orders/$id/whatsapp")->body(), true);
+        $this->assertSame('Maria', $share['customerFirstName']);
+        $this->assertSame('https://wa.me/551199', $share['chatUrl'], 'telefone do cliente, com DDI 55');
+        $this->assertSame('Patricia', $share['sellerName']);
+
+        $png = $this->get("/orders/$id/banner.png");
+        $this->assertSame(200, $png->status());
+        $this->assertSame('image/png', $png->headers()['Content-Type'] ?? '');
+        $this->assertContains('no-store', $png->headers()['Cache-Control'] ?? '', 'imagem temporária: não fica em cache');
+        $size = getimagesizefromstring($png->body());
+        $this->assertSame([1080, 'image/png'], [$size[0] ?? 0, $size['mime'] ?? ''], 'PNG de 1080 px de largura');
+        $this->assertTrue(($size[1] ?? 0) > ($size[0] ?? 0), 'formato retrato');
+        $this->assertSame([], glob($this->tmp . '/**/*.png') ?: [], 'nada gravado em disco');
+
+        // Behind the login like the rest of the orders area.
+        $this->post('/logout', ['csrf_token' => $this->csrf('/')]);
+        foreach (["/orders/$id/banner.png", "/orders/$id/whatsapp"] as $path) {
+            $r = $this->get($path);
+            $this->assertSame([303, '/login'], [$r->status(), $this->location($r)], $path);
+        }
+        $this->login();
         $this->submit("/orders/$id", "/orders/$id/status", ['status' => 'open']);
         $this->assertContains('Status inválido.', $this->get("/orders/$id")->body());
         $this->submit("/orders/$id", "/orders/$id/status", ['status' => 'canceled']);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Patylook\Controllers;
 
+use Patylook\Contracts\OrderBannerServiceInterface;
 use Patylook\Contracts\OrderServiceInterface;
 use Patylook\Core\Request;
 use Patylook\Core\Response;
@@ -23,8 +24,11 @@ use Throwable;
 
 final class OrderController extends Controller
 {
-    public function __construct(Responder $responder, private readonly OrderServiceInterface $orders)
-    {
+    public function __construct(
+        Responder $responder,
+        private readonly OrderServiceInterface $orders,
+        private readonly OrderBannerServiceInterface $banners,
+    ) {
         parent::__construct($responder);
     }
 
@@ -53,6 +57,11 @@ final class OrderController extends Controller
         $paymentTypeId = $form->integer('payment_type_id');
         $notes = $form->str('notes');
         $discount = $form->money('discount', 'Desconto', false);
+        $rawInstallments = $form->str('installments');
+        $installments = Str::toInt($rawInstallments);
+        if ($rawInstallments !== '' && $installments === null) {
+            $form->errors->add('installments', 'Quantidade de parcelas inválida');
+        }
 
         $rows = [];
         $items = [];
@@ -84,12 +93,12 @@ final class OrderController extends Controller
             $items[] = new OrderItemInput($row->productId, $quantity ?? 0, $itemDiscount);
         }
 
-        $draft = new OrderDraft($customerId, $paymentTypeId, $form->str('discount'), $notes, $rows);
+        $draft = new OrderDraft($customerId, $paymentTypeId, $form->str('discount'), $notes, $rows, $rawInstallments);
         try {
             $form->throwIfInvalid();
             $order = $this->orders->create(
                 $this->user($request),
-                new CreateOrderInput($customerId, $paymentTypeId, $discount, $notes, $items),
+                new CreateOrderInput($customerId, $paymentTypeId, $discount, $notes, $items, $installments),
             );
         } catch (ValidationException $e) {
             return $this->form($request, 422, $draft, $e->fields());
@@ -102,7 +111,31 @@ final class OrderController extends Controller
         $order = $this->orders->get($this->routeId($request));
         $page = $this->responder->newPage($request, sprintf('Pedido #%d', $order->id), 'orders');
         $page->data['order'] = $order;
+        // Right after completing the order the page opens the "send by WhatsApp" dialog.
+        $page->data['offerWhatsapp'] = $order->status === OrderStatus::Completed && $request->query('whatsapp') === '1';
         return $this->responder->view('order_detail', $page);
+    }
+
+    /** The order summary image for WhatsApp, drawn on demand (completed orders only). */
+    public function banner(Request $request): Response
+    {
+        $id = $this->routeId($request);
+        return Response::png($this->banners->png($id), sprintf('pedido-%d.png', $id));
+    }
+
+    /** Customer, seller and chat link for the "send by WhatsApp" dialog. */
+    public function share(Request $request): Response
+    {
+        $s = $this->banners->share($this->routeId($request));
+        return Response::json([
+            'orderId' => $s->orderId,
+            'customerName' => $s->customerName,
+            'customerFirstName' => $s->customerFirstName,
+            'customerPhone' => $s->customerPhone,
+            'chatUrl' => $s->chatUrl,
+            'sellerName' => $s->sellerName,
+            'sellerPhone' => $s->sellerPhone,
+        ]);
     }
 
     public function changeStatus(Request $request): Response
@@ -118,10 +151,11 @@ final class OrderController extends Controller
         } catch (Throwable $e) {
             return $this->responder->actionError($request, $destination, $e);
         }
+        $completed = $next === OrderStatus::Completed;
         return $this->responder->success(
             $request,
-            $destination,
-            $next === OrderStatus::Canceled ? 'Pedido cancelado e estoque devolvido.' : 'Pedido concluído.',
+            $completed ? $destination . '?whatsapp=1' : $destination,
+            $completed ? 'Pedido concluído.' : 'Pedido cancelado e estoque devolvido.',
         );
     }
 
@@ -130,7 +164,7 @@ final class OrderController extends Controller
     {
         $data = $this->orders->formData();
         if ($draft->rows === []) {
-            $draft = new OrderDraft($draft->customerId, $draft->paymentTypeId, $draft->discount, $draft->notes, [new OrderRow()]);
+            $draft = new OrderDraft($draft->customerId, $draft->paymentTypeId, $draft->discount, $draft->notes, [new OrderRow()], $draft->installments);
         }
         $page = $this->responder->newPage($request, 'Novo pedido', 'orders');
         $page->errors = $errors;

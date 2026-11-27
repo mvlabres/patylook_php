@@ -11,6 +11,7 @@ use Patylook\Exceptions\ValidationException;
 use Patylook\Models\Customer;
 use Patylook\Models\Money;
 use Patylook\Models\OrderStatus;
+use Patylook\Models\PaymentCategory;
 use Patylook\Models\PaymentType;
 use Patylook\Models\Percent;
 use Patylook\Models\Pricebook;
@@ -55,6 +56,7 @@ final class OrderServiceTest extends TestCase
         $payments->items = [
             1 => new PaymentType(id: 1, name: 'Cartão', surchargePercent: new Percent(500)),
             2 => new PaymentType(id: 2, name: 'PIX'),
+            3 => new PaymentType(id: 3, name: 'Crédito', category: PaymentCategory::Credit),
         ];
         $this->orders = new FakeOrders();
         $this->service = new OrderService(
@@ -70,7 +72,7 @@ final class OrderServiceTest extends TestCase
     }
 
     /** @param list<array{0: int, 1: int, 2?: int}> $items product, quantity, item discount */
-    private function input(int $customer, int $payment, array $items, int $discount = 0, string $notes = ''): CreateOrderInput
+    private function input(int $customer, int $payment, array $items, int $discount = 0, string $notes = '', ?int $installments = null): CreateOrderInput
     {
         return new CreateOrderInput(
             $customer,
@@ -78,16 +80,37 @@ final class OrderServiceTest extends TestCase
             new Money($discount),
             $notes,
             array_map(fn (array $i): OrderItemInput => new OrderItemInput($i[0], $i[1], new Money($i[2] ?? 0)), $items),
+            $installments,
         );
+    }
+
+    public function testInstallmentsOnlyForCreditPayments(): void
+    {
+        // Credit: the installments are required and kept; the value is the final total split evenly.
+        $order = $this->service->create($this->seller, $this->input(1, 3, [[1, 1]], 0, '', 3));
+        $this->assertSame(3, $order->installments);
+        $this->assertSame(intdiv($order->total->cents * 2 + 3, 6), $order->installmentValue()?->cents, 'total / 3 arredondado ao centavo');
+
+        // Not credit: whatever was sent is dropped.
+        $order = $this->service->create($this->seller, $this->input(1, 2, [[1, 1]], 0, '', 5));
+        $this->assertSame(null, $order->installments);
+        $this->assertSame(null, $order->installmentValue());
+
+        foreach ([null, 0, 25, -1] as $bad) {
+            $this->setUp();
+            $e = $this->assertThrows(ValidationException::class, fn () => $this->service->create($this->seller, $this->input(1, 3, [[1, 1]], 0, '', $bad)), 'parcelas ' . var_export($bad, true));
+            $this->assertTrue($e->has('installments'));
+            $this->assertSame([], $this->orders->items, 'nada persistido');
+        }
     }
 
     public function testCreateOrderSnapshotsPricesAndReservesStock(): void
     {
         $order = $this->service->create($this->seller, $this->input(1, 1, [[2, 1], [1, 2, 250]], 500, ' obs '));
-        // 2 x 52,50 - 2,50 = 102,50 ; + 1 x 20,00 = 122,50 ; - 5,00 = 117,50 ; +5% = 5,88 (round half up)
+        // 2 x 52,50 - 2,50 = 102,50 ; + 1 x 20,00 = 122,50 ; +5% = 6,13 (round half up) = 128,63 ; - 5,00 = 123,63
         $this->assertSame(12250, $order->subtotal->cents);
-        $this->assertSame(588, $order->paymentAddition->cents);
-        $this->assertSame(12338, $order->total->cents);
+        $this->assertSame(613, $order->paymentAddition->cents);
+        $this->assertSame(12363, $order->total->cents);
         $this->assertSame(OrderStatus::Open, $order->status);
         $this->assertSame(9, $order->userId);
         $this->assertSame('obs', $order->notes);

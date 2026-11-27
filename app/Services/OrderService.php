@@ -25,6 +25,7 @@ use Patylook\Exceptions\ValidationException;
 use Patylook\Models\Order;
 use Patylook\Models\OrderItem;
 use Patylook\Models\OrderStatus;
+use Patylook\Models\PaymentCategory;
 use Patylook\Models\Percent;
 use Patylook\Models\User;
 use Patylook\Services\Support\Pagination;
@@ -61,6 +62,7 @@ final class OrderService implements OrderServiceInterface
             status: OrderStatus::Open,
             discount: $input->discount,
             notes: $input->notes,
+            installments: $input->installments,
         );
         $order->normalize();
 
@@ -74,8 +76,11 @@ final class OrderService implements OrderServiceInterface
         }
 
         $surcharge = Percent::zero();
+        $credit = false;
         try {
-            $surcharge = $this->payments->findById($input->paymentTypeId)->surchargePercent;
+            $payment = $this->payments->findById($input->paymentTypeId);
+            $surcharge = $payment->surchargePercent;
+            $credit = $payment->category === PaymentCategory::Credit;
         } catch (NotFoundException) {
             $v->add('payment_type_id', 'Forma de pagamento não encontrada');
         }
@@ -90,7 +95,7 @@ final class OrderService implements OrderServiceInterface
         }
         $v->throwIfAny();
 
-        $order->calculate($surcharge);
+        $order->calculate($surcharge, $credit);
 
         // Lock stock rows in a stable order so concurrent orders cannot deadlock.
         usort($order->items, fn (OrderItem $a, OrderItem $b): int => $a->productId <=> $b->productId);

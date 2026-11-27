@@ -6,11 +6,12 @@ namespace Patylook\Repositories\Mysql;
 
 use Patylook\Contracts\PaymentTypeRepositoryInterface;
 use Patylook\Exceptions\NotFoundException;
+use Patylook\Models\PaymentCategory;
 use Patylook\Models\PaymentType;
 
 final class MysqlPaymentTypeRepository extends MysqlRepository implements PaymentTypeRepositoryInterface
 {
-    private const SELECT = 'SELECT id, name, description, surcharge_percent FROM payment_type ';
+    private const SELECT = 'SELECT id, name, description, surcharge_percent, category FROM payment_type ';
 
     /** @param array<string, mixed> $row */
     private function hydrate(array $row): PaymentType
@@ -20,6 +21,7 @@ final class MysqlPaymentTypeRepository extends MysqlRepository implements Paymen
             name: (string) $row['name'],
             description: (string) $row['description'],
             surchargePercent: self::percent($row['surcharge_percent']),
+            category: PaymentCategory::tryFrom((string) $row['category']),
         );
     }
 
@@ -37,8 +39,8 @@ final class MysqlPaymentTypeRepository extends MysqlRepository implements Paymen
     public function create(PaymentType $type): void
     {
         $this->db->execute(
-            'INSERT INTO payment_type (name, description, surcharge_percent) VALUES (?, ?, ?)',
-            [$type->name, $type->description, $type->surchargePercent->decimal()],
+            'INSERT INTO payment_type (name, description, surcharge_percent, category) VALUES (?, ?, ?, ?)',
+            [$type->name, $type->description, $type->surchargePercent->decimal(), ($type->category ?? PaymentCategory::Cash)->value],
         );
         $type->id = $this->db->lastInsertId();
     }
@@ -46,8 +48,8 @@ final class MysqlPaymentTypeRepository extends MysqlRepository implements Paymen
     public function update(PaymentType $type): void
     {
         $this->db->execute(
-            'UPDATE payment_type SET name = ?, description = ?, surcharge_percent = ? WHERE id = ?',
-            [$type->name, $type->description, $type->surchargePercent->decimal(), $type->id],
+            'UPDATE payment_type SET name = ?, description = ?, surcharge_percent = ?, category = ? WHERE id = ?',
+            [$type->name, $type->description, $type->surchargePercent->decimal(), ($type->category ?? PaymentCategory::Cash)->value, $type->id],
         );
     }
 

@@ -29,6 +29,8 @@ use Patylook\Contracts\ProductRepositoryInterface;
 use Patylook\Contracts\ProductServiceInterface;
 use Patylook\Contracts\SessionStoreInterface;
 use Patylook\Contracts\MainSellerRepositoryInterface;
+use Patylook\Contracts\OrderBannerRendererInterface;
+use Patylook\Contracts\OrderBannerServiceInterface;
 use Patylook\Contracts\ShowcaseServiceInterface;
 use Patylook\Contracts\TransactionManagerInterface;
 use Patylook\Contracts\UserRepositoryInterface;
@@ -51,6 +53,7 @@ use Patylook\Infrastructure\FileLogger;
 use Patylook\Infrastructure\FileLoginThrottle;
 use Patylook\Infrastructure\FileSessionStore;
 use Patylook\Infrastructure\GdImageProcessor;
+use Patylook\Infrastructure\GdOrderBannerRenderer;
 use Patylook\Infrastructure\LocalImageStorage;
 use Patylook\Infrastructure\SystemClock;
 use Patylook\Middleware\EnsureReady;
@@ -77,6 +80,7 @@ use Patylook\Services\ProductImageService;
 use Patylook\Services\ProductService;
 use Patylook\Services\SessionGarbageCollector;
 use Patylook\Repositories\Mysql\MysqlMainSellerRepository;
+use Patylook\Services\OrderBannerService;
 use Patylook\Services\ShowcaseService;
 use Patylook\Services\Support\AdminRule;
 use Patylook\Services\UserService;
@@ -151,6 +155,11 @@ return static function (Container $c, Config $config): void {
     $c->singleton(PricebookServiceInterface::class, PricebookService::class);
     $c->singleton(ProductImageServiceInterface::class, ProductImageService::class);
     $c->singleton(MainSellerRepositoryInterface::class, MysqlMainSellerRepository::class);
+    $c->singleton(OrderBannerRendererInterface::class, fn (): OrderBannerRendererInterface => new GdOrderBannerRenderer(
+        $config->basePath . '/resources/fonts',
+        $config->basePath . '/public/static/img/logo.png',
+    ));
+    $c->singleton(OrderBannerServiceInterface::class, OrderBannerService::class);
     $c->singleton(ShowcaseServiceInterface::class, ShowcaseService::class);
     $c->singleton(CustomerServiceInterface::class, CustomerService::class);
     $c->singleton(PaymentTypeServiceInterface::class, PaymentTypeService::class);
