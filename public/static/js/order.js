@@ -50,13 +50,22 @@
     if (!valid(discount)) discount = 0;
     var payment = document.getElementById('f-payment_type_id').selectedOptions[0];
     var pct = payment && payment.value ? parseCents(payment.getAttribute('data-surcharge')) : 0;
-    var base = Math.max(subtotal - discount, 0);
-    var addition = Math.round(base * (valid(pct) ? pct : 0) / 10000);
+    // The surcharge applies over the subtotal; the order discount comes off the final value.
+    var addition = Math.round(subtotal * (valid(pct) ? pct : 0) / 10000);
 
     document.getElementById('t-subtotal').textContent = formatCents(subtotal);
-    document.getElementById('t-discount').textContent = formatCents(discount);
     document.getElementById('t-addition').textContent = formatCents(addition);
-    document.getElementById('t-total').textContent = formatCents(base + addition);
+    document.getElementById('t-discount').textContent = formatCents(discount);
+    var total = Math.max(subtotal + addition - discount, 0);
+    document.getElementById('t-total').textContent = formatCents(total);
+
+    // Installments only exist for credit payments; the value shown is informational.
+    var credit = !!payment && payment.getAttribute('data-category') === 'credit';
+    var installmentsInput = document.getElementById('f-installments');
+    document.getElementById('installments-row').hidden = !credit;
+    installmentsInput.disabled = !credit;
+    var n = parseInt(installmentsInput.value, 10);
+    document.getElementById('t-installment').value = credit && n >= 1 ? formatCents(Math.round(total / n)) : '—';
   }
 
   document.getElementById('add-row').addEventListener('click', function () {

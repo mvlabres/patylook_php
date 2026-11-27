@@ -7,9 +7,11 @@
 /storage/cache/*
 /storage/logs/*
 !/storage/**/.gitkeep
+images/
 
 # Tooling
 vendor/
+python/
 .idea/
 .vscode/
 *.log

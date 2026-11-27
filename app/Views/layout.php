@@ -78,6 +78,18 @@ if ($user !== null && $user->admin) {
   <?php if ($page->flash !== null): ?><div class="alert alert-<?= e($page->flash->kind->value) ?>" role="status"><?= e($page->flash->message) ?></div><?php endif ?>
   <?= $content ?>
 </main>
+<footer class="payment-footer">
+  <div class="payment-container">
+    <p class="payment-title">Aceitamos os seguintes cartões de crédito:</p>
+    <div class="payment-cards">
+      <img src="/static/img/card-visa.png" alt="VISA" class="card-logo">
+      <img src="/static/img/card-mastercard.png" alt="Mastercard" class="card-logo">
+      <img src="/static/img/card-elo.png" alt="Elo" class="card-logo">
+      <img src="/static/img/card-hipercard.png" alt="Hipercard" class="card-logo">
+      <img src="/static/img/card-amex.png" alt="American Express" class="card-logo">
+    </div>
+  </div>
+</footer>
 <script src="/static/js/app.js"></script>
 <?php foreach ($view->scripts() as $src): ?><script src="<?= e($src) ?>"></script><?php endforeach ?>
 

@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Patylook\Models;
 
+use Patylook\Support\Whatsapp;
+
 /** The seller whose WhatsApp the public showcase links to. */
 final class MainSeller
 {
-    /** Brazil's country code, added when the stored number has only area code and number. */
-    private const COUNTRY_CODE = '55';
-
     public function __construct(
         public int $id = 0,
         public string $name = '',
@@ -23,11 +22,7 @@ final class MainSeller
      */
     public function whatsappDigits(): ?string
     {
-        $digits = preg_replace('/\D+/', '', $this->whatsapp) ?? '';
-        if ($digits === '') {
-            return null;
-        }
-        return strlen($digits) <= 11 ? self::COUNTRY_CODE . $digits : $digits;
+        return Whatsapp::digits($this->whatsapp);
     }
 
     /**
@@ -37,7 +32,7 @@ final class MainSeller
     public function chatUrl(string $message): ?string
     {
         $digits = $this->whatsappDigits();
-        return $digits === null ? null : 'https://wa.me/' . $digits . '?text=' . rawurlencode($message);
+        return $digits === null ? null : Whatsapp::chatUrl($digits, $message);
     }
 
     /** The message that starts the conversation about a product. */

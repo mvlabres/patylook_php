@@ -57,6 +57,20 @@ final class SchemaVerifier
         if ($n === 0) {
             throw new SchemaException('a coluna product.gender não existe; aplique migrations/004_add_product_gender.sql');
         }
+        $n = (int) $this->db->scalar(
+            'SELECT COUNT(*) FROM information_schema.COLUMNS '
+            . "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'payment_type' AND COLUMN_NAME = 'category'",
+        );
+        if ($n === 0) {
+            throw new SchemaException('a coluna payment_type.category não existe; aplique migrations/006_add_payment_type_category.sql');
+        }
+        $n = (int) $this->db->scalar(
+            'SELECT COUNT(*) FROM information_schema.COLUMNS '
+            . "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'installments'",
+        );
+        if ($n === 0) {
+            throw new SchemaException('a coluna orders.installments não existe; aplique migrations/005_add_order_installment.sql');
+        }
     }
 
     private function tableExists(string $table): bool

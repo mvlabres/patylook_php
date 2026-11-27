@@ -29,6 +29,23 @@ final class Response
         return (new self($status, $body))->withHeader('Content-Type', 'text/plain; charset=utf-8');
     }
 
+    /** @param array<string, mixed> $data */
+    public static function json(array $data, int $status = 200): self
+    {
+        return (new self($status, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)))
+            ->withHeader('Content-Type', 'application/json; charset=utf-8')
+            ->withHeader('Cache-Control', 'no-store');
+    }
+
+    /** A generated image, sent inline and never cached (it is built on demand). */
+    public static function png(string $bytes, string $filename): self
+    {
+        return (new self(200, $bytes))
+            ->withHeader('Content-Type', 'image/png')
+            ->withHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
+            ->withHeader('Cache-Control', 'private, no-store');
+    }
+
     public static function redirect(string $location, int $status = 303): self
     {
         return (new self($status))->withHeader('Location', $location);

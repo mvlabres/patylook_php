@@ -10,6 +10,7 @@ use Patylook\Core\Response;
 use Patylook\Exceptions\ValidationException;
 use Patylook\Http\Form;
 use Patylook\Http\Responder;
+use Patylook\Models\PaymentCategory;
 use Patylook\Models\PaymentType;
 use Throwable;
 
@@ -66,6 +67,7 @@ final class PaymentTypeController extends Controller
             name: $form->str('name'),
             description: $form->str('description'),
             surchargePercent: $form->percent('surcharge_percent', 'Acréscimo', false),
+            category: PaymentCategory::tryFrom($form->str('category')),
         );
         try {
             $form->throwIfInvalid();

@@ -18,6 +18,8 @@ final class PaymentType
         public string $name = '',
         public string $description = '',
         public Percent $surchargePercent = new Percent(0),
+        /** Null only while a form carries an unknown value; stored types always have one. */
+        public ?PaymentCategory $category = PaymentCategory::Cash,
     ) {
     }
 
@@ -33,6 +35,9 @@ final class PaymentType
         $v = new ValidationException();
         Rules::requireText($v, 'name', 'Nome', $this->name, 45);
         Rules::optionalText($v, 'description', 'Descrição', $this->description, 45);
+        if ($this->category === null) {
+            $v->add('category', 'Categoria é obrigatória');
+        }
         if ($this->surchargePercent->hundredths < 0 || $this->surchargePercent->hundredths > 99_999) {
             $v->add('surcharge_percent', 'Acréscimo deve estar entre 0 e 999,99');
         }

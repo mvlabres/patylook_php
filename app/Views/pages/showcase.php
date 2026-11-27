@@ -45,7 +45,7 @@ $imageUrl = static fn (\Patylook\Models\ProductImage $i): string => $public ? $i
         <span class="chip chip-sku"><span class="chip-label">SKU:</span> <?= e($item->product->sku) ?></span>
       </p>
       <p class="price"><?= e($fmt->moneyOrDash($item->product->currentPrice)) ?></p>
-      <p class="stock <?= $item->product->stock <= 5 ? 'warn' : '' ?>"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg><?= $item->product->stock > 0 ? e($item->product->stock) . ' em estoque' : 'Esgotado' ?></p>
+      <p class="stock <?= $item->product->stock <= 5 ? 'warn' : '' ?><?= $item->product->stock === 0 ? ' out-of-stock' : '' ?>"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg><?= $item->product->stock > 0 ? e($item->product->stock) . ' em estoque' : '<span class="out-of-stock-label">Esgotado</span>' ?></p>
       <?php $lines = array_values(array_filter(array_map('trim', preg_split('/\R/u', $item->product->description) ?: []), static fn (string $l): bool => $l !== '')); ?>
       <?php if ($lines !== []): ?>
       <ul class="desc"><?php foreach ($lines as $line): ?><li><?= e($line) ?></li><?php endforeach ?></ul>

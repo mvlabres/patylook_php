@@ -20,7 +20,7 @@ use Patylook\Support\Str;
 final class MysqlOrderRepository extends MysqlRepository implements OrderRepositoryInterface
 {
     private const SELECT = "SELECT o.id, o.user_id, o.customer_id, o.payment_type_id, o.status, o.subtotal, o.discount, "
-        . "o.payment_addition, o.total, COALESCE(o.notes, '') AS notes, o.created_at, u.name AS user_name, "
+        . "o.payment_addition, o.total, COALESCE(o.notes, '') AS notes, o.installments, o.created_at, u.name AS user_name, "
         . 'c.name AS customer_name, pt.name AS payment_type_name '
         . 'FROM orders o JOIN `user` u ON u.id = o.user_id JOIN customer c ON c.id = o.customer_id '
         . 'JOIN payment_type pt ON pt.id = o.payment_type_id ';
@@ -39,6 +39,7 @@ final class MysqlOrderRepository extends MysqlRepository implements OrderReposit
             paymentAddition: self::money($row['payment_addition']),
             total: self::money($row['total']),
             notes: (string) $row['notes'],
+            installments: $row['installments'] === null ? null : (int) $row['installments'],
             createdAt: $this->timestamp($row['created_at']),
             userName: (string) $row['user_name'],
             customerName: (string) $row['customer_name'],
@@ -49,12 +50,12 @@ final class MysqlOrderRepository extends MysqlRepository implements OrderReposit
     public function create(Order $order): void
     {
         $this->db->execute(
-            'INSERT INTO orders (user_id, customer_id, payment_type_id, status, subtotal, discount, payment_addition, total, notes) '
-            . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO orders (user_id, customer_id, payment_type_id, status, subtotal, discount, payment_addition, total, notes, installments) '
+            . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 $order->userId, $order->customerId, $order->paymentTypeId, $order->status->value,
                 $order->subtotal->decimal(), $order->discount->decimal(), $order->paymentAddition->decimal(),
-                $order->total->decimal(), self::nullString($order->notes),
+                $order->total->decimal(), self::nullString($order->notes), $order->installments,
             ],
         );
         $order->id = $this->db->lastInsertId();

@@ -33,6 +33,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -185,8 +186,10 @@ td.actions > * + * { margin-left: .75rem; }
 /* Order screens */
 .items select, .items input { min-width: 0; }
 .items td:first-child { min-width: 280px; }
-.item-qty { width: 5.5rem; }
-.item-discount { width: 7rem; }
+/* Item fields keep a minimum width: the generic input[type=number] { width: 100% } rule is more specific
+   than a bare class, and without a floor the column collapses and hides the typed value. */
+.items .item-qty { width: 6.5rem; min-width: 6.5rem; }
+.items .item-discount { width: 7rem; min-width: 6rem; }
 .totals { max-width: 360px; margin: 1.25rem 0 .5rem auto; }
 .totals div { display: flex; justify-content: space-between; padding: .3rem 0; }
 .totals dt { color: var(--muted); }
@@ -277,8 +280,9 @@ input[type=file]::file-selector-button { margin-right: .75rem; padding: .3rem .8
   transition: box-shadow .2s;
 }
 .product-card:hover { box-shadow: 0 0 44px rgba(212, 175, 106, .14); }
-.banner { position: relative; display: block; width: 100%; aspect-ratio: 4 / 3; padding: 0; border: 0; border-radius: 22px; overflow: hidden; isolation: isolate; background: #0f0d0a; cursor: zoom-in; }
-.banner img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; filter: brightness(.94) contrast(1.03); transition: transform .2s; }
+.banner { position: relative; display: block; width: fit-content; max-width: 100%; margin-inline: auto; padding: 0; border: 0; border-radius: 22px; overflow: hidden; isolation: isolate; background: #0f0d0a; cursor: zoom-in; }
+/* The frame takes the photo's own shape (portrait or landscape), so nothing is cropped and the rounded corners and fade sit on the photo's edges. */
+.banner img { display: block; width: auto; height: auto; max-width: 100%; max-height: min(30rem, 70vh); border-radius: inherit; filter: brightness(.94) contrast(1.03); transition: transform .2s; }
 /* Soft vignette: fades the photo's (usually white) edges into the card's black and gold, plus a thin gold rim. */
 .banner::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
@@ -288,7 +292,7 @@ input[type=file]::file-selector-button { margin-right: .75rem; padding: .3rem .8
   box-shadow: inset 0 0 0 1px var(--border-strong), inset 0 0 28px rgba(212, 175, 106, .12);
 }
 .banner:hover img, .banner:focus-visible img { transform: scale(1.03); }
-.banner-empty { display: flex; align-items: center; justify-content: center; color: var(--muted); cursor: default; border: 1px dashed var(--border); }
+.banner-empty { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 4 / 3; color: var(--muted); cursor: default; border: 1px dashed var(--border); }
 .card-body h2 { font-size: 1.55rem; line-height: 1.25; font-weight: 600; margin: 0 0 1rem; color: var(--text); }
 .card-body p { margin: 0; }
 .chips { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: 1rem !important; }
@@ -303,8 +307,21 @@ input[type=file]::file-selector-button { margin-right: .75rem; padding: .3rem .8
   font-size: .95rem; color: var(--gold-light);
 }
 .stock.warn { color: var(--warn); }
+.stock.out-of-stock { border-color: rgba(239, 125, 115, .6); background: linear-gradient(180deg, rgba(239, 125, 115, .15), rgba(239, 125, 115, .08)); color: #ef7d73; }
+.out-of-stock-label { font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
 .btn-whatsapp { margin-top: 1.1rem; padding: .6rem 1.2rem; border-color: rgba(37, 211, 102, .6); background: rgba(37, 211, 102, .10); color: #e9fbef; font-weight: 600; }
 .btn-whatsapp:hover { background: rgba(37, 211, 102, .22); color: #fff; }
+.btn-whatsapp:disabled { opacity: .5; cursor: not-allowed; }
+.btn-whatsapp-inline { border-color: rgba(37, 211, 102, .6); color: #8ff0b3; }
+.btn-whatsapp-inline:hover { background: rgba(37, 211, 102, .18); color: #fff; }
+.gallery.wa-dialog { width: min(560px, 94vw); }
+.wa-title { margin: 0 2.5rem .5rem 0; font-size: 1.2rem; }
+.wa-lead { margin: 0 0 .75rem; }
+.wa-preview { text-align: center; }
+.wa-preview img { max-width: 100%; max-height: 52vh; border-radius: 12px; border: 1px solid var(--border-strong); }
+.wa-help { margin: .75rem 0 0; color: var(--muted); font-size: .88rem; }
+.wa-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.wa-actions .btn-whatsapp { margin-top: 0; }
 .icon-fill { width: 1.35em; height: 1.35em; flex: none; fill: #25d366; }
 .desc { list-style: none; margin: 0; padding: 0; font-size: .92rem; }
 .desc li { position: relative; padding-left: 1.4rem; margin: .45rem 0; }
@@ -328,3 +345,27 @@ input[type=file]::file-selector-button { margin-right: .75rem; padding: .3rem .8
 .gallery-thumb { flex: none; width: 96px; height: 72px; padding: 0; border: 2px solid transparent; border-radius: 8px; overflow: hidden; background: none; cursor: pointer; opacity: .6; scroll-snap-align: center; }
 .gallery-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .gallery-thumb.active { border-color: var(--gold); opacity: 1; }
+
+/* Payment Footer */
+.payment-footer {
+  background: linear-gradient(180deg, rgba(212, 175, 106, .05), transparent),
+              linear-gradient(180deg, #100e0b, rgba(11, 10, 9, .97));
+  border-top: 1px solid var(--border);
+  padding: 2.5rem 1.5rem;
+  margin-top: 3rem;
+}
+.payment-container { max-width: 1100px; margin: 0 auto; text-align: center; }
+.payment-title { margin: 0 0 1.5rem; font-size: 1.1rem; color: var(--gold-light); font-weight: 600; }
+.payment-cards { display: flex; gap: 1rem; flex-wrap: nowrap; justify-content: center; align-items: center; overflow-x: auto; overflow-y: hidden; padding: .5rem; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+.card-logo { height: 45px; width: auto; flex-shrink: 0; filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .3)); transition: all .3s ease; cursor: pointer; }
+.card-logo:hover { transform: translateY(-3px); filter: drop-shadow(0 4px 12px rgba(0, 0, 0, .4)); }
+
+@media (max-width: 768px) {
+  .payment-cards { gap: .6rem; padding: .5rem .75rem; }
+  .card-logo { height: 38px; }
+}
+
+@media (max-width: 480px) {
+  .payment-cards { gap: .5rem; padding: .5rem .5rem; }
+  .card-logo { height: 35px; }
+}

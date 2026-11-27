@@ -7,6 +7,7 @@
 /** @var \Patylook\Models\Order $o */
 $o = $page->data['order'];
 use Patylook\Models\OrderStatus;
+$view->script('/static/js/order_whatsapp.js');
 ?>
 <div class="section-head">
   <div>
@@ -19,6 +20,9 @@ use Patylook\Models\OrderStatus;
       <?= $view->partial('csrf', ['csrf' => $page->csrf]) ?><input type="hidden" name="status" value="completed">
       <button type="submit" class="btn btn-primary">Concluir</button>
     </form>
+    <?php endif ?>
+    <?php if ($o->status === OrderStatus::Completed): ?>
+    <button type="button" class="btn" data-whatsapp-order="<?= e($o->id) ?>">Enviar por WhatsApp</button>
     <?php endif ?>
     <?php if ($o->status === OrderStatus::Open || $o->status === OrderStatus::Completed): ?>
     <form method="post" action="/orders/<?= e($o->id) ?>/status" class="inline" data-confirm="Cancelar este pedido? O estoque dos itens será devolvido.">
@@ -33,6 +37,7 @@ use Patylook\Models\OrderStatus;
 <dl class="details">
   <div><dt>Cliente</dt><dd><?= e($o->customerName) ?></dd></div>
   <div><dt>Forma de pagamento</dt><dd><?= e($o->paymentTypeName) ?></dd></div>
+  <?php if ($o->installments !== null): ?><div><dt>Parcelas</dt><dd><?= e($o->installments) ?>x de <?= e($fmt->moneyOrDash($o->installmentValue())) ?></dd></div><?php endif ?>
 </dl>
 
 <div class="table-wrap">
@@ -55,9 +60,14 @@ use Patylook\Models\OrderStatus;
 
 <dl class="totals">
   <div><dt>Subtotal</dt><dd><?= e($fmt->money($o->subtotal)) ?></dd></div>
-  <div><dt>Desconto</dt><dd><?= e($fmt->money($o->discount)) ?></dd></div>
   <div><dt>Acréscimo do pagamento</dt><dd><?= e($fmt->money($o->paymentAddition)) ?></dd></div>
+  <div><dt>Desconto no pedido</dt><dd><?= e($fmt->money($o->discount)) ?></dd></div>
   <div class="grand"><dt>Total</dt><dd><?= e($fmt->money($o->total)) ?></dd></div>
 </dl>
 
 <?php if ($o->notes !== ''): ?><h2>Observações</h2><p class="notes"><?= e($o->notes) ?></p><?php endif ?>
+
+<?php if ($o->status === OrderStatus::Completed): ?>
+<?= $view->partial('whatsapp_dialog') ?>
+<?php if (!empty($page->data['offerWhatsapp'])): ?><span data-whatsapp-auto="<?= e($o->id) ?>" hidden></span><?php endif ?>
+<?php endif ?>

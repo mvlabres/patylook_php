@@ -87,6 +87,8 @@ return static function (Router $router): void {
         $r->post('/orders', [OrderController::class, 'store']);
         $r->get('/orders/{id}', [OrderController::class, 'show']);
         $r->post('/orders/{id}/status', [OrderController::class, 'changeStatus']);
+        $r->get('/orders/{id}/banner.png', [OrderController::class, 'banner']);
+        $r->get('/orders/{id}/whatsapp', [OrderController::class, 'share']);
 
         $r->get('/profile', [AuthController::class, 'profile']);
         $r->post('/profile/password', [AuthController::class, 'changePassword']);
