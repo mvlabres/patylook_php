@@ -357,3 +357,24 @@ input[type=file]::file-selector-button { margin-right: .75rem; padding: .3rem .8
 .payment-cards { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
 .card-badge { display: inline-flex; align-items: center; gap: .5rem; padding: .6rem 1.2rem; border: 1px solid var(--border-strong); border-radius: 10px; background: rgba(212, 175, 106, .08); color: var(--text); font-weight: 500; font-size: .95rem; transition: all .3s ease; }
 .card-badge:hover { background: rgba(212, 175, 106, .16); border-color: var(--gold); color: var(--gold-light); }
+
+/* Card-specific styles */
+.card-visa::before { content: "💳"; margin-right: .3rem; }
+.card-visa { border-color: rgba(26, 31, 113, .6); background: linear-gradient(135deg, rgba(26, 31, 113, .15), rgba(26, 31, 113, .05)); color: #e0e7ff; }
+.card-visa:hover { background: linear-gradient(135deg, rgba(26, 31, 113, .25), rgba(26, 31, 113, .15)); border-color: #1A1F71; }
+
+.card-mastercard::before { content: "💳"; margin-right: .3rem; }
+.card-mastercard { border-color: rgba(235, 0, 27, .6); background: linear-gradient(135deg, rgba(235, 0, 27, .15), rgba(247, 158, 31, .08)); color: #ffe5e5; }
+.card-mastercard:hover { background: linear-gradient(135deg, rgba(235, 0, 27, .25), rgba(247, 158, 31, .15)); border-color: #EB001B; }
+
+.card-elo::before { content: "💳"; margin-right: .3rem; }
+.card-elo { border-color: rgba(255, 210, 0, .6); background: linear-gradient(135deg, rgba(255, 210, 0, .15), rgba(239, 11, 12, .08)); color: #fff9e6; }
+.card-elo:hover { background: linear-gradient(135deg, rgba(255, 210, 0, .25), rgba(239, 11, 12, .15)); border-color: #FFD200; }
+
+.card-hipercard::before { content: "💳"; margin-right: .3rem; }
+.card-hipercard { border-color: rgba(0, 102, 209, .6); background: linear-gradient(135deg, rgba(0, 102, 209, .15), rgba(255, 215, 0, .08)); color: #e6f2ff; }
+.card-hipercard:hover { background: linear-gradient(135deg, rgba(0, 102, 209, .25), rgba(255, 215, 0, .15)); border-color: #0066D1; }
+
+.card-amex::before { content: "💳"; margin-right: .3rem; }
+.card-amex { border-color: rgba(0, 111, 207, .6); background: linear-gradient(135deg, rgba(0, 111, 207, .15), rgba(0, 111, 207, .05)); color: #e6f0ff; }
+.card-amex:hover { background: linear-gradient(135deg, rgba(0, 111, 207, .25), rgba(0, 111, 207, .15)); border-color: #006FCF; }

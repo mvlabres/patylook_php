@@ -82,12 +82,11 @@ if ($user !== null && $user->admin) {
   <div class="payment-container">
     <p class="payment-title">Aceitamos os seguintes cartões de crédito:</p>
     <div class="payment-cards">
-      <span class="card-badge">💳 VISA</span>
-      <span class="card-badge">💳 Mastercard</span>
-      <span class="card-badge">💳 Elo</span>
-      <span class="card-badge">💳 Hipercard</span>
-      <span class="card-badge">💳 American Express</span>
-      <span class="card-badge">💳 Cabal</span>
+      <span class="card-badge card-visa">VISA</span>
+      <span class="card-badge card-mastercard">Mastercard</span>
+      <span class="card-badge card-elo">Elo</span>
+      <span class="card-badge card-hipercard">Hipercard</span>
+      <span class="card-badge card-amex">American Express</span>
     </div>
   </div>
 </footer>
