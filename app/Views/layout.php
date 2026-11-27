@@ -82,45 +82,11 @@ if ($user !== null && $user->admin) {
   <div class="payment-container">
     <p class="payment-title">Aceitamos os seguintes cartões de crédito:</p>
     <div class="payment-cards">
-      <span class="card-badge card-visa">
-        <svg class="card-logo" viewBox="0 0 100 60" aria-hidden="true">
-          <rect width="100" height="60" rx="6" fill="white" stroke="#ddd" stroke-width="1.5"/>
-          <path d="M 15 25 L 25 15 L 25 45 Z" fill="#ED1C24"/>
-          <text x="50" y="40" font-size="32" font-weight="bold" fill="#003478" text-anchor="middle">VISA</text>
-        </svg>
-      </span>
-      <span class="card-badge card-mastercard">
-        <svg class="card-logo" viewBox="0 0 100 60" aria-hidden="true">
-          <rect width="100" height="60" rx="6" fill="white" stroke="#ddd" stroke-width="1.5"/>
-          <circle cx="32" cy="30" r="16" fill="#EB001B"/>
-          <circle cx="68" cy="30" r="16" fill="#F79E1B"/>
-          <text x="50" y="52" font-size="10" font-weight="bold" fill="#000" text-anchor="middle">mastercard</text>
-        </svg>
-      </span>
-      <span class="card-badge card-elo">
-        <svg class="card-logo" viewBox="0 0 100 60" aria-hidden="true">
-          <rect width="100" height="60" rx="6" fill="white" stroke="#ddd" stroke-width="1.5"/>
-          <circle cx="50" cy="28" r="12" fill="none" stroke="#003478" stroke-width="8"/>
-          <path d="M 50 16 A 12 12 0 0 1 62 28" fill="none" stroke="#FDD835" stroke-width="8" stroke-linecap="round"/>
-          <path d="M 62 28 A 12 12 0 0 1 50 40" fill="none" stroke="#ED1C24" stroke-width="8" stroke-linecap="round"/>
-          <path d="M 50 40 A 12 12 0 0 1 38 28" fill="none" stroke="#003478" stroke-width="8" stroke-linecap="round"/>
-          <text x="70" y="40" font-size="22" font-weight="bold" fill="#000">elo</text>
-        </svg>
-      </span>
-      <span class="card-badge card-hipercard">
-        <svg class="card-logo" viewBox="0 0 100 60" aria-hidden="true">
-          <rect width="100" height="60" rx="6" fill="white" stroke="#ddd" stroke-width="1.5"/>
-          <path d="M 15 20 L 70 20 L 85 40 L 70 40 Z" fill="#ED1C24" transform="skewX(-15)"/>
-          <text x="50" y="40" font-size="20" font-weight="600" fill="white" text-anchor="middle" font-style="italic">Hipercard</text>
-        </svg>
-      </span>
-      <span class="card-badge card-amex">
-        <svg class="card-logo" viewBox="0 0 100 60" aria-hidden="true">
-          <rect width="100" height="60" rx="6" fill="#003478"/>
-          <text x="50" y="22" font-size="8" font-weight="bold" fill="white" text-anchor="middle">AMERICAN</text>
-          <text x="50" y="38" font-size="8" font-weight="bold" fill="white" text-anchor="middle">EXPRESS</text>
-        </svg>
-      </span>
+      <img src="/static/img/card-visa.png" alt="VISA" class="card-logo">
+      <img src="/static/img/card-mastercard.png" alt="Mastercard" class="card-logo">
+      <img src="/static/img/card-elo.png" alt="Elo" class="card-logo">
+      <img src="/static/img/card-hipercard.png" alt="Hipercard" class="card-logo">
+      <img src="/static/img/card-amex.png" alt="American Express" class="card-logo">
     </div>
   </div>
 </footer>
