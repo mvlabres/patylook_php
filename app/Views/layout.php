@@ -82,11 +82,21 @@ if ($user !== null && $user->admin) {
   <div class="payment-container">
     <p class="payment-title">Aceitamos os seguintes cartões de crédito:</p>
     <div class="payment-cards">
-      <span class="card-badge card-visa">VISA</span>
-      <span class="card-badge card-mastercard">Mastercard</span>
-      <span class="card-badge card-elo">Elo</span>
-      <span class="card-badge card-hipercard">Hipercard</span>
-      <span class="card-badge card-amex">American Express</span>
+      <span class="card-badge card-visa">
+        <svg class="card-logo" viewBox="0 0 48 32" aria-hidden="true"><rect width="48" height="32" rx="4" fill="#1A1F71"/><text x="24" y="20" text-anchor="middle" font-size="12" fill="white" font-weight="bold">VISA</text></svg>
+      </span>
+      <span class="card-badge card-mastercard">
+        <svg class="card-logo" viewBox="0 0 48 32" aria-hidden="true"><rect width="48" height="32" rx="4" fill="white"/><circle cx="18" cy="16" r="8" fill="#EB001B"/><circle cx="30" cy="16" r="8" fill="#F79E1B"/></svg>
+      </span>
+      <span class="card-badge card-elo">
+        <svg class="card-logo" viewBox="0 0 48 32" aria-hidden="true"><rect width="48" height="32" rx="4" fill="white"/><rect width="16" height="32" fill="#FFF200"/><rect x="16" width="16" height="32" fill="#EF0B0C"/><rect x="32" width="16" height="32" fill="#0066CC"/></svg>
+      </span>
+      <span class="card-badge card-hipercard">
+        <svg class="card-logo" viewBox="0 0 48 32" aria-hidden="true"><rect width="48" height="32" rx="4" fill="white"/><circle cx="12" cy="10" r="4" fill="#0066D1"/><circle cx="24" cy="10" r="4" fill="#0066D1"/><circle cx="36" cy="10" r="4" fill="#0066D1"/><circle cx="12" cy="22" r="4" fill="#FFD700"/><circle cx="24" cy="22" r="4" fill="#FFD700"/><circle cx="36" cy="22" r="4" fill="#FFD700"/></svg>
+      </span>
+      <span class="card-badge card-amex">
+        <svg class="card-logo" viewBox="0 0 48 32" aria-hidden="true"><rect width="48" height="32" rx="4" fill="#006FCF"/><text x="24" y="20" text-anchor="middle" font-size="10" fill="white" font-weight="bold">AMEX</text></svg>
+      </span>
     </div>
   </div>
 </footer>
