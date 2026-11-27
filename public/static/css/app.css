@@ -307,6 +307,8 @@ input[type=file]::file-selector-button { margin-right: .75rem; padding: .3rem .8
   font-size: .95rem; color: var(--gold-light);
 }
 .stock.warn { color: var(--warn); }
+.stock.out-of-stock { border-color: rgba(239, 125, 115, .6); background: linear-gradient(180deg, rgba(239, 125, 115, .15), rgba(239, 125, 115, .08)); color: #ef7d73; }
+.out-of-stock-label { font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
 .btn-whatsapp { margin-top: 1.1rem; padding: .6rem 1.2rem; border-color: rgba(37, 211, 102, .6); background: rgba(37, 211, 102, .10); color: #e9fbef; font-weight: 600; }
 .btn-whatsapp:hover { background: rgba(37, 211, 102, .22); color: #fff; }
 .btn-whatsapp:disabled { opacity: .5; cursor: not-allowed; }

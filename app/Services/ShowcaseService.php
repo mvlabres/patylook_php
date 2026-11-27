@@ -53,6 +53,19 @@ final class ShowcaseService implements ShowcaseServiceInterface
             fn (Product $p): ShowcaseItem => new ShowcaseItem($p, $images[$p->id] ?? []),
             $result->items,
         );
+
+        // Sort items: alphabetically by name, with out-of-stock items last
+        usort($items, static function (ShowcaseItem $a, ShowcaseItem $b): int {
+            $aInStock = $a->product->stock > 0;
+            $bInStock = $b->product->stock > 0;
+
+            if ($aInStock !== $bInStock) {
+                return $aInStock ? -1 : 1;
+            }
+
+            return strcasecmp($a->product->name, $b->product->name);
+        });
+
         return Pagination::page($items, $result->total, $page);
     }
 }
